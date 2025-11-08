@@ -1,0 +1,14 @@
+{
+  "enabled": true,
+  "name": "API Documentation Generator",
+  "description": "Generate comprehensive API documentation by analyzing the Express.js routes in the server/routes directory",
+  "version": "1",
+  "when": {
+    "type": "fileEdited",
+    "patterns": []
+  },
+  "then": {
+    "type": "askAgent",
+    "prompt": "Analyze all Express.js route files in the server/routes directory and generate comprehensive API documentation. For each route, document: the HTTP method, endpoint path, request parameters (query, body, path params), response format, status codes, authentication requirements, and any middleware used. Format the documentation in a clear, structured manner suitable for developers."
+  }
+}

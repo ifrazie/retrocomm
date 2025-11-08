@@ -1,0 +1,100 @@
+:root {
+  /* Typography */
+  font-family: Inter, system-ui, Avenir, Helvetica, Arial, sans-serif;
+  line-height: 1.5;
+  font-weight: 400;
+
+  /* Color Scheme */
+  color-scheme: dark;
+  
+  /* Base Color Variables */
+  --color-bg-primary: #0a0a0a;
+  --color-bg-secondary: #1a1a1a;
+  --color-bg-hover: #2a2a2a;
+  --color-border: #333;
+  --color-text-primary: #fff;
+  --color-text-secondary: #aaa;
+  --color-primary: #00ff00;
+  --color-error: #ff4444;
+  --color-warning: #ffaa00;
+
+  /* Pager Theme Colors */
+  --pager-bg-primary: #000000;
+  --pager-bg-secondary: #001100;
+  --pager-text-primary: #00ff00;
+  --pager-text-secondary: #00aa00;
+  --pager-text-dim: #006600;
+  --pager-border: #00ff00;
+  --pager-glow: rgba(0, 255, 0, 0.5);
+  --pager-glow-strong: rgba(0, 255, 0, 0.8);
+  
+  /* Fax Theme Colors */
+  --fax-bg-primary: #2c2416;
+  --fax-bg-secondary: #3d3426;
+  --fax-bg-dark: #1a1410;
+  --fax-text-primary: #2c2416;
+  --fax-text-secondary: #8b7355;
+  --fax-accent: #d4af37;
+  --fax-accent-hover: #e5c04a;
+  --fax-border: #4a3f2f;
+  --fax-border-light: #5a4f3f;
+  --fax-paper: #f4f1e8;
+  --fax-paper-shadow: rgba(0, 0, 0, 0.5);
+  
+  /* Spacing */
+  --spacing-xs: 0.25rem;
+  --spacing-sm: 0.5rem;
+  --spacing-md: 1rem;
+  --spacing-lg: 1.5rem;
+  --spacing-xl: 2rem;
+  --spacing-xxl: 3rem;
+  
+  /* Border Radius */
+  --radius-sm: 4px;
+  --radius-md: 8px;
+  --radius-lg: 12px;
+  
+  /* Transitions */
+  --transition-fast: 0.15s ease;
+  --transition-normal: 0.25s ease;
+  --transition-slow: 0.5s ease;
+  
+  /* Z-Index Layers */
+  --z-base: 1;
+  --z-dropdown: 100;
+  --z-modal: 1000;
+  --z-tooltip: 2000;
+  
+  /* Responsive Breakpoints (for reference in media queries) */
+  --breakpoint-mobile: 480px;
+  --breakpoint-tablet: 768px;
+  --breakpoint-desktop: 1024px;
+  --breakpoint-wide: 1440px;
+
+  /* Rendering */
+  font-synthesis: none;
+  text-rendering: optimizeLegibility;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
+
+* {
+  margin: 0;
+  padding: 0;
+  box-sizing: border-box;
+}
+
+body {
+  margin: 0;
+  min-width: 320px;
+  min-height: 100vh;
+  background-color: var(--color-bg-primary);
+  color: var(--color-text-primary);
+  overflow: hidden;
+}
+
+#root {
+  width: 100%;
+  height: 100vh;
+  margin: 0;
+}

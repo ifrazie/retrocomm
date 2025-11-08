@@ -1,0 +1,23 @@
+{
+  "enabled": true,
+  "name": "Documentation Sync",
+  "description": "Watches JavaScript source files and configuration files for changes and prompts to update documentation in README.md accordingly",
+  "version": "1",
+  "when": {
+    "type": "fileEdited",
+    "patterns": [
+      "src/**/*.js",
+      "src/**/*.jsx",
+      "server/**/*.js",
+      "*.js",
+      "*.jsx",
+      "package.json",
+      "vite.config.js",
+      "eslint.config.js"
+    ]
+  },
+  "then": {
+    "type": "askAgent",
+    "prompt": "Source code files have been modified. Please review the changes and update the README.md file to reflect any new features, API changes, configuration updates, or usage instructions that may be affected by these code changes. Ensure the documentation stays accurate and helpful for users."
+  }
+}

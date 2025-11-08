@@ -1,0 +1,17 @@
+{
+  "enabled": true,
+  "name": "Test Automation",
+  "description": "Triggers on save for test files (src/**/*.test.{js,jsx}), automatically running Jest tests, updating coverage reports, identifying untested code paths, and suggesting additional test cases.",
+  "version": "1",
+  "when": {
+    "type": "fileEdited",
+    "patterns": [
+      "src/**/*.test.js",
+      "src/**/*.test.jsx"
+    ]
+  },
+  "then": {
+    "type": "askAgent",
+    "prompt": "A test file has been modified. Please:\n1. Run the Jest tests for the modified test file\n2. Generate and analyze the coverage report\n3. Identify any untested code paths in the corresponding source file\n4. Suggest additional test cases to improve coverage and test quality\n5. Highlight any edge cases or scenarios that may not be covered\n\nProvide a summary of test results, coverage metrics, and actionable recommendations for improving the test suite."
+  }
+}

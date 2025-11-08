@@ -1,0 +1,215 @@
+.WebhookConfig {
+  background-color: #1a1a1a;
+  color: #e0e0e0;
+  border-radius: 8px;
+  padding: 24px;
+  max-width: 600px;
+  margin: 0 auto;
+  box-shadow: 0 4px 6px rgba(0, 0, 0, 0.3);
+}
+
+.WebhookConfig__header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 24px;
+  border-bottom: 2px solid #333;
+  padding-bottom: 16px;
+}
+
+.WebhookConfig__title {
+  font-size: 24px;
+  font-weight: bold;
+  margin: 0;
+  color: #00ff00;
+}
+
+.WebhookConfig__close-btn {
+  background: none;
+  border: none;
+  color: #888;
+  font-size: 32px;
+  cursor: pointer;
+  padding: 0;
+  width: 32px;
+  height: 32px;
+  line-height: 1;
+  transition: color 0.2s;
+}
+
+.WebhookConfig__close-btn:hover {
+  color: #fff;
+}
+
+.WebhookConfig__form {
+  display: flex;
+  flex-direction: column;
+  gap: 24px;
+}
+
+.WebhookConfig__section {
+  background-color: #252525;
+  padding: 16px;
+  border-radius: 4px;
+  border: 1px solid #333;
+}
+
+.WebhookConfig__section-title {
+  font-size: 18px;
+  font-weight: bold;
+  margin: 0 0 12px 0;
+  color: #00ff00;
+}
+
+.WebhookConfig__description {
+  font-size: 14px;
+  color: #999;
+  margin: 0 0 12px 0;
+}
+
+.WebhookConfig__endpoint-display {
+  display: flex;
+  gap: 8px;
+}
+
+.WebhookConfig__endpoint-input {
+  flex: 1;
+  background-color: #1a1a1a;
+  border: 1px solid #444;
+  color: #00ff00;
+  padding: 10px 12px;
+  border-radius: 4px;
+  font-family: 'Courier New', monospace;
+  font-size: 14px;
+}
+
+.WebhookConfig__copy-btn {
+  background-color: #333;
+  border: 1px solid #555;
+  color: #e0e0e0;
+  padding: 10px 16px;
+  border-radius: 4px;
+  cursor: pointer;
+  font-size: 14px;
+  white-space: nowrap;
+  transition: background-color 0.2s;
+}
+
+.WebhookConfig__copy-btn:hover {
+  background-color: #444;
+}
+
+.WebhookConfig__field {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.WebhookConfig__label {
+  font-size: 14px;
+  font-weight: 600;
+  color: #ccc;
+}
+
+.WebhookConfig__input {
+  background-color: #2a2a2a;
+  border: 1px solid #444;
+  color: #e0e0e0;
+  padding: 10px 12px;
+  border-radius: 4px;
+  font-size: 14px;
+  transition: border-color 0.2s;
+}
+
+.WebhookConfig__input:focus {
+  outline: none;
+  border-color: #00ff00;
+}
+
+.WebhookConfig__input--error {
+  border-color: #ff4444;
+}
+
+.WebhookConfig__error {
+  color: #ff4444;
+  font-size: 12px;
+  margin-top: -2px;
+}
+
+.WebhookConfig__field-description {
+  font-size: 12px;
+  color: #888;
+  margin: 0;
+}
+
+.WebhookConfig__checkbox-label {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  cursor: pointer;
+  font-size: 14px;
+  color: #ccc;
+}
+
+.WebhookConfig__checkbox-label input[type="checkbox"] {
+  width: 18px;
+  height: 18px;
+  cursor: pointer;
+}
+
+.WebhookConfig__actions {
+  display: flex;
+  gap: 12px;
+  margin-top: 8px;
+}
+
+.WebhookConfig__save-btn {
+  flex: 1;
+  background-color: #00ff00;
+  color: #000;
+  border: none;
+  padding: 12px 24px;
+  border-radius: 4px;
+  font-size: 16px;
+  font-weight: bold;
+  cursor: pointer;
+  transition: background-color 0.2s;
+}
+
+.WebhookConfig__save-btn:hover {
+  background-color: #00dd00;
+}
+
+.WebhookConfig__cancel-btn {
+  background-color: #333;
+  color: #e0e0e0;
+  border: 1px solid #555;
+  padding: 12px 24px;
+  border-radius: 4px;
+  font-size: 16px;
+  cursor: pointer;
+  transition: background-color 0.2s;
+}
+
+.WebhookConfig__cancel-btn:hover {
+  background-color: #444;
+}
+
+/* Responsive design */
+@media (max-width: 640px) {
+  .WebhookConfig {
+    padding: 16px;
+  }
+
+  .WebhookConfig__title {
+    font-size: 20px;
+  }
+
+  .WebhookConfig__endpoint-display {
+    flex-direction: column;
+  }
+
+  .WebhookConfig__actions {
+    flex-direction: column;
+  }
+}

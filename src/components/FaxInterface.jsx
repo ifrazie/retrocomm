@@ -1,0 +1,380 @@
+import React, { useState, useEffect, useRef } from 'react';
+import { useMessages } from '../contexts/MessageContext.jsx';
+import { useConfig } from '../contexts/ConfigContext.jsx';
+import { renderFaxWithAnimation } from '../utils/faxRenderer.js';
+import { retryFetch } from '../utils/retry.js';
+import Toast from './Toast.jsx';
+import './FaxInterface.css';
+
+/**
+ * FaxThumbnail Component
+ * Memoized thumbnail display for better performance
+ */
+const FaxThumbnail = React.memo(({ fax, onClick }) => {
+  return (
+    <div
+      className={`FaxInterface__thumbnail ${fax.isFallback ? 'FaxInterface__thumbnail--fallback' : ''}`}
+      onClick={() => onClick(fax)}
+    >
+      {fax.isFallback ? (
+        <div className="FaxInterface__thumbnail-text">
+          <div className="FaxInterface__thumbnail-text-content">
+            {fax.content.substring(0, 50)}...
+          </div>
+        </div>
+      ) : (
+        <img
+          src={fax.imageDataUrl}
+          alt={`Fax from ${fax.sender || 'Unknown'}`}
+          className="FaxInterface__thumbnail-img"
+        />
+      )}
+      <div className="FaxInterface__thumbnail-info">
+        {new Date(fax.timestamp).toLocaleTimeString()}
+      </div>
+    </div>
+  );
+});
+
+FaxThumbnail.displayName = 'FaxThumbnail';
+
+/**
+ * FaxInterface Component
+ * Displays messages as vintage fax documents with transmission effects
+ */
+const FaxInterface = () => {
+  const { messages } = useMessages();
+  const { webhooks } = useConfig();
+  const [inputValue, setInputValue] = useState('');
+  const [faxArchive, setFaxArchive] = useState([]);
+  const [selectedFax, setSelectedFax] = useState(null);
+  const [isTransmitting, setIsTransmitting] = useState(false);
+  const [isSending, setIsSending] = useState(false);
+  const [toast, setToast] = useState(null);
+  const [pendingMessage, setPendingMessage] = useState(null);
+  const [renderingError, setRenderingError] = useState(false);
+  const canvasRef = useRef(null);
+  const previousMessageCount = useRef(messages.length);
+
+  // Process new messages and render as fax documents
+  useEffect(() => {
+    const processNewMessages = async () => {
+      if (messages.length > previousMessageCount.current) {
+        const newMessages = messages.slice(previousMessageCount.current);
+        
+        for (const message of newMessages) {
+          await renderNewFax(message);
+        }
+        
+        previousMessageCount.current = messages.length;
+      }
+    };
+
+    processNewMessages();
+  }, [messages]);
+
+  /**
+   * Render a new fax document with animation
+   * @param {import('../types/index.js').Message} message - Message to render
+   */
+  const renderNewFax = async (message) => {
+    if (!canvasRef.current) return;
+
+    setIsTransmitting(true);
+
+    try {
+      // Check if Canvas API is available
+      if (!canvasRef.current.getContext) {
+        throw new Error('Canvas API not supported');
+      }
+
+      // Render with animation
+      const dataUrl = await renderFaxWithAnimation(
+        message,
+        canvasRef.current,
+        (progress) => {
+          // Animation progress callback (optional use for UI feedback)
+        },
+        2500 // 2.5 seconds animation
+      );
+
+      // Create fax document object
+      const faxDoc = {
+        id: message.id,
+        imageDataUrl: dataUrl,
+        timestamp: message.timestamp,
+        sender: message.sender,
+        content: message.content
+      };
+
+      // Add to archive (limit to 100)
+      setFaxArchive(prev => {
+        const updated = [...prev, faxDoc];
+        return updated.slice(-100);
+      });
+
+      setIsTransmitting(false);
+      
+      // Clear any previous rendering errors
+      if (renderingError) {
+        setRenderingError(false);
+      }
+    } catch (error) {
+      console.error('Error rendering fax:', error);
+      setIsTransmitting(false);
+      
+      // Set rendering error state
+      if (!renderingError) {
+        setRenderingError(true);
+        setToast({
+          message: 'Canvas rendering failed. Falling back to plain text display.',
+          type: 'warning'
+        });
+      }
+      
+      // Create fallback plain text document
+      const fallbackDoc = {
+        id: message.id,
+        imageDataUrl: null, // No image, will display as text
+        timestamp: message.timestamp,
+        sender: message.sender,
+        content: message.content,
+        isFallback: true
+      };
+
+      // Add to archive (limit to 100)
+      setFaxArchive(prev => {
+        const updated = [...prev, fallbackDoc];
+        return updated.slice(-100);
+      });
+    }
+  };
+
+  const _handleInputChange = (e) => {
+    setInputValue(e.target.value);
+  };
+
+  const _sendMessage = async (messageContent) => {
+    const payload = {
+      message: messageContent,
+      timestamp: Date.now(),
+      sender: 'fax-user'
+    };
+
+    const fetchOptions = {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        ...(webhooks.enableAuth && webhooks.authToken && {
+          'Authorization': `Bearer ${webhooks.authToken}`
+        })
+      },
+      body: JSON.stringify(payload)
+    };
+
+    // Use retry logic with exponential backoff
+    await retryFetch(
+      webhooks.outgoingUrl,
+      fetchOptions,
+      {
+        maxAttempts: 3,
+        baseDelay: 1000,
+        onRetry: (attempt, delay, error) => {
+          console.log(`Retry attempt ${attempt} after ${delay}ms due to:`, error.message);
+        }
+      }
+    );
+  };
+
+  const _handleSubmit = async (e) => {
+    e.preventDefault();
+    
+    if (!inputValue.trim() || isSending) {
+      return;
+    }
+    
+    // Check if outgoing webhook is configured
+    if (!webhooks.outgoingUrl) {
+      console.error('Outgoing webhook URL not configured');
+      setToast({
+        message: 'Please configure outgoing webhook URL in settings',
+        type: 'warning'
+      });
+      return;
+    }
+
+    const messageToSend = inputValue;
+    setPendingMessage(messageToSend);
+    setIsSending(true);
+
+    try {
+      await _sendMessage(messageToSend);
+
+      // Clear input after successful send
+      setInputValue('');
+      setPendingMessage(null);
+      setIsSending(false);
+      
+      // Show success toast briefly
+      setToast({
+        message: 'Fax sent successfully',
+        type: 'success'
+      });
+    } catch (error) {
+      console.error('Error sending fax:', error);
+      setIsSending(false);
+      
+      // Show error toast with retry button
+      setToast({
+        message: `Failed to send fax: ${error.message}`,
+        type: 'error',
+        onRetry: () => _handleRetry()
+      });
+    }
+  };
+
+  const _handleRetry = async () => {
+    if (!pendingMessage || isSending) return;
+
+    // Close current toast
+    setToast(null);
+    setIsSending(true);
+
+    try {
+      await _sendMessage(pendingMessage);
+
+      // Clear input and pending message after successful retry
+      setInputValue('');
+      setPendingMessage(null);
+      setIsSending(false);
+      
+      // Show success toast
+      setToast({
+        message: 'Fax sent successfully',
+        type: 'success'
+      });
+    } catch (error) {
+      console.error('Retry failed:', error);
+      setIsSending(false);
+      
+      // Show error toast again with retry button
+      setToast({
+        message: `Failed to send fax: ${error.message}`,
+        type: 'error',
+        onRetry: () => _handleRetry()
+      });
+    }
+  };
+
+  const _handleCloseToast = () => {
+    setToast(null);
+  };
+
+  const _handleFaxClick = (fax) => {
+    setSelectedFax(fax);
+  };
+
+  const _handleCloseModal = () => {
+    setSelectedFax(null);
+  };
+
+  return (
+    <div className="FaxInterface">
+      <div className="FaxInterface__header">
+        <div className="FaxInterface__title">FAX MACHINE</div>
+        <div className="FaxInterface__status">
+          {isTransmitting ? 'TRANSMITTING...' : 'READY'}
+        </div>
+      </div>
+
+      <div className="FaxInterface__display">
+        <canvas
+          ref={canvasRef}
+          width={595}
+          height={842}
+          className="FaxInterface__canvas"
+        />
+      </div>
+
+      <div className="FaxInterface__archive">
+        <div className="FaxInterface__archive-title">RECEIVED DOCUMENTS</div>
+        {renderingError && (
+          <div className="FaxInterface__warning">
+            ⚠️ Canvas rendering unavailable - displaying messages as text
+          </div>
+        )}
+        <div className="FaxInterface__archive-grid">
+          {faxArchive.slice().reverse().map((fax) => (
+            <FaxThumbnail key={fax.id} fax={fax} onClick={_handleFaxClick} />
+          ))}
+        </div>
+      </div>
+
+      <form className="FaxInterface__input-form" onSubmit={_handleSubmit}>
+        <input
+          type="text"
+          className="FaxInterface__input"
+          value={inputValue}
+          onChange={_handleInputChange}
+          placeholder="Type message to send..."
+          disabled={isSending}
+        />
+        <button 
+          type="submit" 
+          className={`FaxInterface__send-btn ${isSending ? 'FaxInterface__send-btn--loading' : ''}`}
+          disabled={isSending}
+        >
+          {isSending ? (
+            <>
+              <span className="FaxInterface__spinner" />
+              SENDING...
+            </>
+          ) : (
+            'SEND FAX'
+          )}
+        </button>
+      </form>
+
+      {selectedFax && (
+        <div className="FaxInterface__modal" onClick={_handleCloseModal}>
+          <div className="FaxInterface__modal-content" onClick={(e) => e.stopPropagation()}>
+            <button className="FaxInterface__modal-close" onClick={_handleCloseModal}>
+              ×
+            </button>
+            {selectedFax.isFallback ? (
+              <div className="FaxInterface__modal-text">
+                <div className="FaxInterface__modal-text-header">
+                  FAX TRANSMISSION (TEXT MODE)
+                </div>
+                <div className="FaxInterface__modal-text-content">
+                  {selectedFax.content}
+                </div>
+              </div>
+            ) : (
+              <img
+                src={selectedFax.imageDataUrl}
+                alt={`Fax from ${selectedFax.sender || 'Unknown'}`}
+                className="FaxInterface__modal-img"
+              />
+            )}
+            <div className="FaxInterface__modal-info">
+              <div>From: {selectedFax.sender || 'Unknown'}</div>
+              <div>Time: {new Date(selectedFax.timestamp).toLocaleString()}</div>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {toast && (
+        <Toast
+          message={toast.message}
+          type={toast.type}
+          onRetry={toast.onRetry}
+          onClose={_handleCloseToast}
+        />
+      )}
+    </div>
+  );
+};
+
+export default FaxInterface;

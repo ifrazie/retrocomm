@@ -1,0 +1,20 @@
+{
+  "enabled": true,
+  "name": "Code Quality",
+  "description": "Monitors JavaScript and React source files for changes and provides automated code quality analysis including ESLint checks, React anti-patterns detection, performance optimization suggestions.",
+  "version": "1",
+  "when": {
+    "type": "fileEdited",
+    "patterns": [
+      "src/**/*.js",
+      "src/**/*.jsx",
+      "src/**/*.ts",
+      "src/**/*.tsx",
+      "server/**/*.js"
+    ]
+  },
+  "then": {
+    "type": "askAgent",
+    "prompt": "Analyze the changed JavaScript/React files for code quality issues. Perform the following checks:\n\n1. **ESLint Analysis**: Review the code against common ESLint rules and best practices\n2. **React Anti-patterns**: Identify React-specific issues such as:\n   - Missing key props in lists\n   - Unnecessary re-renders\n   - Improper hook usage (hooks called conditionally, in loops, or nested functions)\n   - Direct state mutations\n   - Missing dependency arrays in useEffect/useCallback/useMemo\n3. **Performance Optimization**: Suggest improvements like:\n   - Memoization opportunities (React.memo, useMemo, useCallback)\n   - Code splitting suggestions\n   - Expensive operations that should be optimized\n   - Large bundle size contributors\n4. **Code Quality**: Check for:\n   - Unused variables and imports\n   - Console.log statements left in code\n   - Overly complex functions\n   - Missing error boundaries\n   - Accessibility issues\n\nProvide specific, actionable feedback with code examples where applicable. Focus on the most impactful issues first."
+  }
+}
