@@ -24,7 +24,7 @@ const ModeToggle = () => {
         aria-label="Switch to pager mode"
         aria-pressed={currentMode === 'pager'}
       >
-        Pager
+        📟 Pager Mode
       </button>
       <button
         className={`ModeToggle__button ${currentMode === 'fax' ? 'is-active' : ''}`}
@@ -32,14 +32,8 @@ const ModeToggle = () => {
         aria-label="Switch to fax mode"
         aria-pressed={currentMode === 'fax'}
       >
-        Fax
+        📠 Fax Mode
       </button>
-      <div 
-        className="ModeToggle__slider"
-        style={{
-          transform: currentMode === 'fax' ? 'translateX(100%)' : 'translateX(0)'
-        }}
-      />
     </div>
   );
 };

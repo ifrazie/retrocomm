@@ -16,7 +16,8 @@ const defaultWebhooks = {
 
 const defaultPreferences = {
   mode: 'pager',
-  soundEnabled: true
+  soundEnabled: true,
+  layoutVariant: 'default'
 };
 
 // Create context
@@ -83,6 +84,14 @@ export const ConfigProvider = ({ children }) => {
   };
 
   /**
+   * Update layout variant preference
+   * @param {'default' | 'compact' | 'experimental'} variant - Layout variant
+   */
+  const setLayoutVariant = (variant) => {
+    setPreferences({ layoutVariant: variant });
+  };
+
+  /**
    * Update incoming webhook URL
    * @param {string} url - Incoming webhook URL
    */
@@ -131,6 +140,7 @@ export const ConfigProvider = ({ children }) => {
     setPreferences,
     setMode,
     toggleSound,
+    setLayoutVariant,
     setIncomingUrl,
     setOutgoingUrl,
     setAuthToken,

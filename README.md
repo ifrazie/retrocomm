@@ -1,42 +1,54 @@
 # Retro Messenger 📟📠
 
-A nostalgic web application that brings vintage communication devices (pagers and fax machines) into the modern era. Experience the charm of retro technology with modern reliability through webhook-based messaging.
+A nostalgic web application that brings vintage communication devices (pagers and fax machines) into the modern era. Experience the charm of retro technology with modern chatbot integration and simulated webhook functionality.
 
 ## Features
 
 ### 🟢 Pager Mode
-- Classic green-on-black monospace display
-- 240-character message limit per message
-- Audible beep notifications for new messages
-- Scrollable history of last 50 messages
-- CRT screen effects with scanlines and glow
+- Classic green-on-black monospace LCD display
+- Authentic pager interface with physical button controls
+- Displays last 5 messages with sender, timestamp, and content
+- Message status indicators (SENDING, DELIVERED)
+- Alert LED for new unread messages
+- CRT screen effects with retro styling
 
 ### 📄 Fax Mode
-- Vintage fax document rendering with paper texture
-- Progressive line-by-line transmission animation
-- Scan lines, distortion, and noise effects
-- Archive of up to 100 received fax documents
-- Thumbnail gallery with full-size document viewer
+- Vintage thermal fax machine interface
+- Dot-matrix printer styling with paper texture
+- Progressive transmission animation with scanning line
+- Full message history displayed as fax documents
+- Page headers with sender, date, and page numbers
+- Authentic fax machine controls and indicators
+
+### 🤖 Built-in Chatbot
+- Automated responses to user messages
+- Command recognition (HELP, STATUS, INFO, TIME, WEATHER)
+- Typing indicators with retro animation
+- Bot messages clearly labeled with [BOT] prefix
+- Context-aware default responses
 
 ### 🔗 Webhook Integration
-- Receive messages via HTTP POST webhooks
-- Send messages to external webhook endpoints
-- Optional authentication with Bearer tokens
-- Real-time message delivery via Server-Sent Events (SSE)
-- Automatic retry with exponential backoff
+- **Configurable Webhook Endpoints**: Set custom outgoing webhook URLs for message delivery
+- **Authentication Support**: Optional Bearer token authentication for secure webhook calls
+- **Incoming Webhook URL**: Unique endpoint for receiving messages from external services
+- **Visual Status Indicators**: Real-time webhook transmission animations
+- **Animated Delivery Status**: "Sending" status during message delivery with confirmation
+- **Connection Monitoring**: Webhook status display (CONNECTED, TRANSMITTING)
+- **Settings Panel**: Easy-to-use configuration interface with copy-to-clipboard functionality
+- **AWS Kiro Integration**: Built-in support for AWS Kiro webhook patterns
 
 ### ⚙️ Additional Features
 - Seamless mode switching between pager and fax
 - Message history preserved across mode changes
-- Connection status indicators
-- Configurable webhook endpoints
+- Pre-loaded example messages for demonstration
 - Responsive design for mobile and desktop
-- XSS protection with content sanitization
+- Retro-themed header with nostalgic branding
+- Kiroween Hackathon 2025 themed footer
 
 ## Prerequisites
 
 - Node.js 16+ and npm
-- Modern web browser with Canvas API support
+- Modern web browser (Chrome, Firefox, Safari, Edge)
 
 ## Installation
 
@@ -55,23 +67,16 @@ npm install
 
 ### Development Mode
 
-1. Start the backend server:
-```bash
-npm run server
-```
-The server will run on `http://localhost:3001`
-
-2. In a separate terminal, start the frontend development server:
+Start the development server:
 ```bash
 npm run dev
 ```
-The frontend will run on `http://localhost:5173`
 
-3. Open your browser and navigate to `http://localhost:5173`
+The application will run on `http://localhost:5173`. Open your browser and navigate to this URL.
 
 ### Production Build
 
-1. Build the frontend:
+1. Build the application:
 ```bash
 npm run build
 ```
@@ -81,82 +86,66 @@ npm run build
 npm run preview
 ```
 
-## Configuration
+The application is a standalone frontend demo and does not require a backend server.
 
-### Webhook Setup
+## Usage
 
-1. Click the settings icon (⚙️) in the top-right corner
-2. Configure your webhook URLs:
-   - **Incoming Webhook URL**: The backend endpoint where you'll receive messages (displayed in settings)
-   - **Outgoing Webhook URL**: External endpoint where messages will be sent
-3. (Optional) Enable authentication and set a Bearer token
-4. Click "Save Configuration"
+### Configuring Webhooks
 
-### Webhook Endpoints
+1. Click the **⚙ Settings** button in the header or the **⚙ MENU** button in pager/fax controls
+2. Configure your webhook settings:
+   - **Outgoing Webhook URL**: Enter the endpoint where messages will be sent
+   - **Enable Authentication**: Toggle to require Bearer token authentication
+   - **Auth Token**: Enter your Bearer token (only if authentication is enabled)
+3. Copy your unique **Incoming Webhook URL** to receive messages from external services
+4. Click **Save Configuration** to apply changes
 
-#### Receive Messages (Incoming)
-```
-POST http://localhost:3001/api/webhook
-```
+**Note**: The incoming webhook URL is unique to your session and can be used to send messages to your Retro Messenger instance from external applications or services.
 
-**Request Headers:**
-```
-Content-Type: application/json
-Authorization: Bearer <your-token> (if auth enabled)
-```
+### Sending Messages
 
-**Request Body:**
-```json
-{
-  "message": "Your message text here",
-  "sender": "optional-sender-id",
-  "timestamp": 1234567890000,
-  "metadata": {
-    "platform": "slack",
-    "channelId": "C123456"
-  }
-}
-```
+1. Type your message in the input field at the bottom of the interface
+2. Press Enter or click the SEND (pager) / TRANSMIT (fax) button
+3. Watch the webhook transmission animation
+4. Your message appears with a "SENDING" status, then changes to "DELIVERED"
+5. After 2 seconds, the chatbot responds automatically
+6. If configured, messages are also sent to your outgoing webhook endpoint
 
-**Response:**
-```json
-{
-  "success": true,
-  "messageId": "uuid-v4-string"
-}
-```
+### Chatbot Commands
 
-#### Send Messages (Outgoing)
-Configure your outgoing webhook URL in settings. Messages sent from the UI will be forwarded to this endpoint with the same format as above.
+The built-in chatbot recognizes these commands:
 
-### Example Webhook Payloads
+- **HELP** - Display available commands
+- **STATUS** - Show system status
+- **INFO** - Display application information
+- **TIME** - Show current time
+- **WEATHER** - Display weather information
 
-**Simple Message:**
-```json
-{
-  "message": "Hello from Retro Messenger!"
-}
-```
+Simply include any of these keywords in your message to trigger the corresponding response.
 
-**Message with Metadata:**
-```json
-{
-  "message": "Meeting in 5 minutes",
-  "sender": "alice@example.com",
-  "timestamp": 1699564800000,
-  "metadata": {
-    "priority": "high",
-    "category": "reminder"
-  }
-}
-```
+### Interface Controls
 
-**Long Message (will be truncated in pager mode):**
-```json
-{
-  "message": "This is a very long message that exceeds the 240 character limit in pager mode. It will be automatically truncated with an ellipsis to maintain the authentic pager experience. However, in fax mode, the entire message will be rendered on the document."
-}
-```
+**Pager Mode:**
+- ▲ UP - Scroll to top
+- 📠 FAX - Switch to fax mode
+- ▼ DOWN - Scroll to bottom
+- ✕ CLEAR - Clear all messages
+- ⚙ MENU - Open webhook settings panel
+- ✓ READ - Mark messages as read (clears alert LED)
+
+**Fax Mode:**
+- 📟 PAGER - Switch to pager mode
+- 🗑 CLEAR - Clear all messages
+- ⚙ MENU - Open webhook settings panel
+- ✓ READ - Mark messages as read
+
+### Example Messages
+
+The application comes pre-loaded with 10 example messages demonstrating:
+- Regular messages from users (Alice, Bob, Manager, etc.)
+- Chatbot responses with weather and reminders
+- System notifications
+- Various message types and timestamps
 
 ## Testing
 
@@ -178,28 +167,47 @@ npm run test:ui
 ## Architecture
 
 ### Frontend (React)
-- **React 18** with hooks for state management
+- **React 18** with hooks (useState, useEffect, useRef) for state management
 - **Vite** for fast development and optimized builds
-- **Context API** for global state (messages, configuration)
-- **Canvas API** for fax document rendering
-- **Server-Sent Events (SSE)** for real-time message delivery
+- **Standalone application** - No backend required
+- **CSS Grid** and Flexbox for responsive layouts
+- **CSS Custom Properties** for themeable, responsive design
+- **CSS Animations** for retro effects (scanning lines, typing indicators, LED alerts)
 
-### Backend (Node.js/Express)
-- **Express** web server
-- **CORS** enabled for cross-origin requests
-- **Authentication middleware** for optional token validation
-- **Validation middleware** for payload sanitization
-- **SSE** for broadcasting messages to connected clients
+### Key Features Implementation
 
-### Key Components
+**Message Management:**
+- Messages stored in component state
+- Pre-loaded with 10 example messages
+- Message types: 'sent', 'received', 'bot'
+- Status tracking: 'sending', 'delivered'
 
-- `PagerInterface` - Retro pager display with green-on-black styling
-- `FaxInterface` - Vintage fax machine with document rendering
-- `WebhookConfig` - Settings panel for webhook configuration
-- `StatusIndicator` - Connection status display
-- `ModeToggle` - Switch between pager and fax modes
-- `MessageContext` - Global message queue management
-- `ConfigContext` - Application configuration and persistence
+**Webhook Configuration:**
+- Persistent webhook settings stored in component state
+- Configurable outgoing webhook URL for message delivery
+- Optional Bearer token authentication
+- Unique incoming webhook URL generation
+- Copy-to-clipboard functionality for easy sharing
+- Settings panel with toggle visibility
+
+**Chatbot Engine:**
+- Pattern matching for command recognition
+- Configurable response dictionary
+- Simulated typing delay (2 seconds)
+- Automatic response to all user messages
+
+**Webhook Simulation:**
+- Visual transmission indicators
+- 1.5-second simulated delivery delay
+- Status updates (connected → sending → connected)
+- Animated spinner during transmission
+
+**UI Components:**
+- Pager view with LCD display and physical buttons
+- Fax view with thermal printer styling
+- Mode switcher with active state indicators
+- Input area with send button
+- Webhook status display with LED indicators
 
 ## Browser Support
 
@@ -208,47 +216,138 @@ npm run test:ui
 - Safari 14+
 - Opera 76+
 
-Canvas API and Server-Sent Events are required for full functionality.
+Modern JavaScript (ES6+) support required for full functionality.
+
+## Webhook Configuration Details
+
+### Outgoing Webhooks
+
+When you configure an outgoing webhook URL, Retro Messenger will send HTTP POST requests to that endpoint whenever you send a message. The payload structure is:
+
+```json
+{
+  "sender": "You",
+  "content": "Your message text",
+  "timestamp": "14:32",
+  "type": "sent"
+}
+```
+
+If authentication is enabled, requests include a Bearer token header:
+```
+Authorization: Bearer YOUR_TOKEN_HERE
+```
+
+### Incoming Webhooks
+
+Your unique incoming webhook URL allows external services to send messages to your Retro Messenger instance. To send a message, make a POST request to your incoming webhook URL with this payload:
+
+```json
+{
+  "sender": "External Service",
+  "content": "Message from external system",
+  "type": "received"
+}
+```
+
+The message will appear in your pager or fax interface immediately.
+
+### Security Considerations
+
+- **Authentication**: Always enable Bearer token authentication for production webhooks
+- **HTTPS**: Use HTTPS endpoints for secure transmission
+- **Token Storage**: Keep your auth tokens secure and never commit them to version control
+- **Incoming URL**: Treat your incoming webhook URL as sensitive - anyone with this URL can send messages to your interface
 
 ## Troubleshooting
 
 ### Messages not appearing
-- Check that the backend server is running on port 3001
-- Verify webhook configuration in settings
-- Check browser console for errors
-- Ensure SSE connection is established (check status indicator)
+- Ensure you're typing in the input field and pressing Enter or clicking SEND
+- Check browser console for JavaScript errors
+- Try refreshing the page
 
-### Fax rendering issues
-- If you see "Canvas rendering unavailable" warning, your browser may not support Canvas API
-- The app will fall back to plain text display
-- Try updating your browser to the latest version
+### Chatbot not responding
+- Wait 2 seconds after sending a message for the chatbot response
+- The chatbot responds to all messages automatically
+- Try sending a command like "HELP" or "STATUS"
 
-### Authentication errors
-- Verify the Bearer token matches between sender and receiver
-- Check that authentication is enabled in settings if required
-- Ensure the Authorization header format is correct: `Bearer <token>`
+### Animations not working
+- Ensure you're using a modern browser (Chrome, Firefox, Safari, Edge)
+- Check that hardware acceleration is enabled in browser settings
+- Try disabling browser extensions that might interfere with CSS animations
 
-### Connection issues
-- Check that both frontend and backend are running
-- Verify no firewall is blocking ports 3001 or 5173
-- Check browser console for CORS errors
+### Display issues
+- The application is optimized for desktop and mobile browsers
+- Try zooming in/out if text appears too small or large
+- Clear browser cache and reload if styles appear broken
+
+### Webhook configuration not saving
+- Ensure you click the "Save Configuration" button after making changes
+- Check browser console for any JavaScript errors
+- Verify your webhook URL is a valid HTTP/HTTPS endpoint
+
+### Incoming webhook not working
+- Ensure you're sending POST requests to the correct incoming webhook URL
+- Verify the request payload matches the expected JSON structure
+- Check that CORS is properly configured if sending from a web application
+
+## User Interface
+
+The application features a simplified, retro-themed interface with:
+
+### Header
+- **Retro branding**: "⚡ RETRO MESSENGER ⚡" title with nostalgic styling
+- **Subtitle**: "Modern Messaging Reimagined with 1980s Tech"
+- **Mode toggle**: Switch between Pager and Fax modes
+- **Settings button**: Access webhook configuration panel with:
+  - Outgoing webhook URL configuration
+  - Bearer token authentication setup
+  - Incoming webhook URL display with copy functionality
+  - Save/cancel controls
+
+### Main Display Area
+- Full-width device interface (Pager or Fax mode)
+- Immersive retro experience without distracting sidebars
+- Responsive design adapts to all screen sizes
+
+### Footer
+- **Kiroween branding**: "🎃 Kiroween Hackathon 2025"
+- **Attribution**: Links to AWS Kiro with proper rel attributes
+- **Theme**: Webhooks & Chatbots showcase
+
+### Responsive Design
+- **Mobile (< 768px)**: Stacked layout with touch-optimized controls
+- **Tablet (768px - 1023px)**: Optimized spacing for medium screens
+- **Desktop (≥ 1024px)**: Full-width immersive experience
 
 ## Performance Optimization
 
 The application includes several performance optimizations:
-- React.memo for message and thumbnail components
-- Optimized canvas rendering with willReadFrequently flag
-- Pixel sampling for texture effects (every 4th pixel)
-- Off-screen canvas for fax rendering
-- Message history limited to 50 (pager) / 100 (fax)
+- Lightweight component structure with minimal re-renders
+- Efficient state management with React hooks
+- CSS-based animations for smooth performance
+- Auto-scroll to latest message using refs
+- Message display limited to last 5 in pager mode
+- Simplified layout structure for faster rendering
 
-## Security
+## Demo Features
 
-- All message content is sanitized using DOMPurify
-- XSS protection on incoming webhooks
-- Optional Bearer token authentication
-- CORS configuration for production deployment
-- Input validation on all endpoints
+This is a demonstration application showcasing:
+- Retro UI/UX design principles
+- Simulated webhook integration patterns
+- Basic chatbot command processing
+- Mode switching between different interface paradigms
+- Authentic vintage device aesthetics
+
+For production use, consider integrating:
+- Real backend API for message persistence
+- Actual webhook endpoints for external integrations (now configurable via settings)
+- Webhook signature verification for security
+- Advanced chatbot with NLP capabilities
+- User authentication and multi-user support
+- Message encryption and security features
+- Webhook retry logic and failure handling
+- Rate limiting for incoming webhook requests
 
 ## License
 
