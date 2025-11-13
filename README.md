@@ -49,6 +49,7 @@ A nostalgic web application that brings vintage communication devices (pagers an
 
 - Node.js 16+ and npm
 - Modern web browser (Chrome, Firefox, Safari, Edge)
+- TypeScript 5.0+ (for type checking and future TypeScript migration)
 
 ## Installation
 
@@ -61,6 +62,11 @@ cd retro-messenger
 2. Install dependencies:
 ```bash
 npm install
+```
+
+**Note:** If you encounter ESLint errors, you may need to install the TypeScript ESLint dependency:
+```bash
+npm install --save-dev typescript-eslint
 ```
 
 ## Running the Application
@@ -147,7 +153,31 @@ The application comes pre-loaded with 10 example messages demonstrating:
 - System notifications
 - Various message types and timestamps
 
-## Testing
+## Development Tools
+
+### Linting
+
+The project uses ESLint with TypeScript support for code quality:
+
+```bash
+# ESLint is configured to support both JavaScript and TypeScript files
+# Configuration includes React Hooks rules and React Refresh plugin
+```
+
+**ESLint Configuration:**
+- TypeScript ESLint parser and rules
+- React Hooks recommended rules
+- React Refresh for Vite HMR
+- Custom rule: Unused variables starting with uppercase or underscore are allowed
+
+### Type Checking
+
+Run TypeScript type checking:
+```bash
+npm run type-check
+```
+
+### Testing
 
 Run the test suite:
 ```bash
@@ -169,6 +199,8 @@ npm run test:ui
 ### Frontend (React)
 - **React 18** with hooks (useState, useEffect, useRef) for state management
 - **Vite** for fast development and optimized builds
+- **TypeScript** support configured for future migration
+- **ESLint** with TypeScript rules for code quality
 - **Standalone application** - No backend required
 - **CSS Grid** and Flexbox for responsive layouts
 - **CSS Custom Properties** for themeable, responsive design
