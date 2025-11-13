@@ -8,6 +8,8 @@ The Retro Messenger backend provides a RESTful API for webhook-based messaging w
 
 **Content-Type**: `application/json`
 
+> **Note**: This document covers the backend webhook API. For information about the frontend AI chatbot integration (LM Studio), see the [LM Studio Integration section in README.md](README.md#lm-studio-integration).
+
 ---
 
 ## Table of Contents
@@ -19,6 +21,8 @@ The Retro Messenger backend provides a RESTful API for webhook-based messaging w
 5. [Authentication](#authentication)
 6. [Error Responses](#error-responses)
 7. [Middleware](#middleware)
+8. [Frontend Services](#frontend-services)
+   - [LLM Chatbot Service](#llm-chatbot-service)
 
 ---
 
@@ -713,6 +717,111 @@ Total maximum delay: ~7 seconds before failure
 ## Version History
 
 - **v1.0.0** - Initial release with webhook, SSE, and send endpoints
+
+---
+
+## Frontend Services
+
+### LLM Chatbot Service
+
+The frontend includes an AI-powered chatbot service that integrates with LM Studio for intelligent responses.
+
+**Service File**: `src/services/LLMChatbotService.js`
+
+**Key Features**:
+- Real-time connection to LM Studio via `@lmstudio/sdk`
+- Automatic fallback to simulated responses when offline
+- Context-aware conversation history (last 20 messages)
+- Mode-specific system prompts (pager/fax)
+- Streaming response generation
+
+**API Methods**:
+
+```javascript
+import { llmChatbot } from './services/LLMChatbotService';
+
+// Connect to LM Studio
+await llmChatbot.connect();
+// Returns: boolean (true if connected)
+
+// Generate AI response
+const response = await llmChatbot.generateResponse('Hello!');
+// Returns: string (AI-generated response)
+
+// Set interface mode
+llmChatbot.setMode('pager'); // or 'fax'
+
+// Check connection status
+const isConnected = llmChatbot.isLLMConnected();
+// Returns: boolean
+
+// Clear conversation history
+llmChatbot.clearHistory();
+
+// Disconnect
+await llmChatbot.disconnect();
+```
+
+**Configuration**:
+- **Max Tokens**: 150 (optimized for retro display)
+- **Temperature**: 0.7 (balanced creativity)
+- **Stop Strings**: `['\n\n\n']` (prevents verbose output)
+- **History Limit**: 20 messages + system prompt
+
+**System Prompt Structure**:
+```javascript
+{
+  role: 'system',
+  content: `You are a retro AI assistant integrated into a ${mode} device...`
+}
+```
+
+**Fallback Responses**:
+When LM Studio is unavailable, the service provides simulated responses for:
+- `HELP` - Command list
+- `STATUS` - Device status
+- `INFO` - System information
+- `TIME` - Current time
+- `WEATHER` - Weather data
+
+**Error Handling**:
+- Connection failures gracefully fall back to simulated mode
+- Console logging for debugging (`✓ Connected to LM Studio`)
+- Automatic retry not implemented (manual reconnection required)
+
+**Integration Example**:
+```javascript
+// In React component
+useEffect(() => {
+  const initChatbot = async () => {
+    const connected = await llmChatbot.connect();
+    if (connected) {
+      console.log('LM Studio connected');
+    } else {
+      console.log('Using fallback mode');
+    }
+  };
+  
+  initChatbot();
+  
+  return () => {
+    llmChatbot.disconnect();
+  };
+}, []);
+
+// Handle user message
+const handleMessage = async (userMessage) => {
+  const botResponse = await llmChatbot.generateResponse(userMessage);
+  displayMessage(botResponse);
+};
+```
+
+**Requirements**:
+- LM Studio installed and running locally
+- Compatible LLM model loaded (e.g., Qwen2.5-7B-Instruct)
+- `@lmstudio/sdk` npm package installed
+
+For detailed setup instructions, see [README.md - LM Studio Integration](README.md#lm-studio-integration).
 
 ---
 

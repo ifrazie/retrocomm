@@ -674,3 +674,31 @@
 .settings-modal::-webkit-scrollbar-thumb:hover {
     background: #00cc33;
 }
+
+/* LLM STATUS DISPLAY */
+
+.llm-status-display {
+    margin: 10px 0;
+}
+
+.llm-status-indicator {
+    padding: 12px 16px;
+    border-radius: 4px;
+    font-family: 'Courier New', monospace;
+    font-size: 14px;
+    font-weight: bold;
+    text-align: center;
+    margin-bottom: 10px;
+}
+
+.llm-status-indicator.connected {
+    background-color: rgba(0, 255, 65, 0.1);
+    border: 2px solid #00ff41;
+    color: #00ff41;
+}
+
+.llm-status-indicator.disconnected {
+    background-color: rgba(255, 107, 107, 0.1);
+    border: 2px solid #ff6b6b;
+    color: #ff6b6b;
+}

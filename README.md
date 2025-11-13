@@ -1,6 +1,15 @@
 # Retro Messenger 📟📠
 
-A nostalgic web application that brings vintage communication devices (pagers and fax machines) into the modern era. Experience the charm of retro technology with modern chatbot integration and simulated webhook functionality.
+A nostalgic web application that brings vintage communication devices (pagers and fax machines) into the modern era. Experience the charm of retro technology with **AI-powered chatbot integration** (via LM Studio) and simulated webhook functionality.
+
+## 🆕 What's New
+
+**LM Studio Integration** - The chatbot now supports real AI responses using locally-run language models:
+- Connect to LM Studio for intelligent, context-aware conversations
+- Automatic fallback to simulated responses when offline
+- Mode-specific AI personality (pager/fax context awareness)
+- Maintains conversation history for multi-turn dialogues
+- Optimized for retro display with concise responses
 
 ## Features
 
@@ -20,12 +29,15 @@ A nostalgic web application that brings vintage communication devices (pagers an
 - Page headers with sender, date, and page numbers
 - Authentic fax machine controls and indicators
 
-### 🤖 Built-in Chatbot
-- Automated responses to user messages
-- Command recognition (HELP, STATUS, INFO, TIME, WEATHER)
-- Typing indicators with retro animation
-- Bot messages clearly labeled with [BOT] prefix
-- Context-aware default responses
+### 🤖 AI-Powered Chatbot (LM Studio Integration)
+- **Real LLM Integration**: Connect to LM Studio for intelligent AI responses
+- **Fallback Mode**: Automatic fallback to simulated responses when LM Studio is offline
+- **Context-Aware Conversations**: Maintains conversation history for coherent multi-turn dialogues
+- **Mode-Specific Prompts**: AI adapts responses based on pager/fax interface mode
+- **Command Recognition**: Supports HELP, STATUS, INFO, TIME, WEATHER commands
+- **Concise Responses**: Optimized for retro display with 150-token limit
+- **Typing Indicators**: Retro animation during AI response generation
+- **Bot Messages**: Clearly labeled with [BOT] prefix in retro terminal style
 
 ### 🔗 Webhook Integration
 - **Configurable Webhook Endpoints**: Set custom outgoing webhook URLs for message delivery
@@ -50,6 +62,10 @@ A nostalgic web application that brings vintage communication devices (pagers an
 - Node.js 16+ and npm
 - Modern web browser (Chrome, Firefox, Safari, Edge)
 - TypeScript 5.0+ (for type checking and future TypeScript migration)
+- **LM Studio** (optional, for AI chatbot functionality)
+  - Download from [lmstudio.ai](https://lmstudio.ai)
+  - Any compatible LLM model loaded (e.g., Qwen2.5-7B-Instruct)
+  - Local server running on default port
 
 ## Installation
 
@@ -64,9 +80,25 @@ cd retro-messenger
 npm install
 ```
 
+This includes:
+- `@lmstudio/sdk` - LM Studio JavaScript SDK for AI chatbot integration
+- React, Vite, and other core dependencies
+
 **Note:** If you encounter ESLint errors, you may need to install the TypeScript ESLint dependency:
 ```bash
 npm install --save-dev typescript-eslint
+```
+
+3. **(Optional) Set up LM Studio for AI chatbot:**
+```bash
+# Install LM Studio from https://lmstudio.ai
+# Download any compatible model (e.g., Qwen2.5-7B-Instruct)
+lms get qwen2.5-7b-instruct
+
+# Load the model
+lms load qwen2.5-7b-instruct
+
+# The application will automatically connect to the currently loaded model
 ```
 
 ## Running the Application
@@ -117,17 +149,37 @@ The application is a standalone frontend demo and does not require a backend ser
 5. After 2 seconds, the chatbot responds automatically
 6. If configured, messages are also sent to your outgoing webhook endpoint
 
-### Chatbot Commands
+### AI Chatbot Integration
 
-The built-in chatbot recognizes these commands:
+The application features an intelligent chatbot powered by LM Studio:
 
+**LM Studio Mode (when connected):**
+- Real AI responses using locally-run language models
+- Context-aware conversations with memory of previous messages
+- Adapts personality based on interface mode (pager/fax)
+- Maintains retro aesthetic in responses
+- Supports natural language queries and commands
+
+**Fallback Mode (when LM Studio is offline):**
+- Automatic fallback to simulated responses
+- Command recognition for: HELP, STATUS, INFO, TIME, WEATHER
+- System status indicators show "LM STUDIO OFFLINE"
+
+**How to Enable LM Studio:**
+1. Install and run LM Studio (download from [lmstudio.ai](https://lmstudio.ai))
+2. Load any compatible model (e.g., `qwen2.5-7b-instruct`)
+3. Start the application - it will automatically connect to the currently loaded model
+4. Look for "✓ Connected to LM Studio" in browser console
+
+**Chatbot Commands:**
+Simply type naturally or use these commands:
 - **HELP** - Display available commands
-- **STATUS** - Show system status
+- **STATUS** - Show device and connection status
 - **INFO** - Display application information
 - **TIME** - Show current time
 - **WEATHER** - Display weather information
 
-Simply include any of these keywords in your message to trigger the corresponding response.
+The AI chatbot maintains conversation history (last 20 messages) for coherent multi-turn conversations.
 
 ### Interface Controls
 
@@ -154,6 +206,46 @@ The application comes pre-loaded with 10 example messages demonstrating:
 - Various message types and timestamps
 
 ## Development Tools
+
+### Proxy Configuration
+
+The application uses a Vite development proxy to enable browser connections to LM Studio:
+
+**Configuration** (`vite.config.ts`):
+```javascript
+server: {
+  proxy: {
+    '/lmstudio': {
+      target: 'http://127.0.0.1:1234',  // LM Studio default port
+      changeOrigin: true,
+      rewrite: (path) => path.replace(/^\/lmstudio/, ''),
+      ws: true,  // WebSocket support for streaming
+    }
+  }
+}
+```
+
+This proxy:
+- Routes browser requests from `/lmstudio` to LM Studio's local server
+- Avoids CORS issues when connecting from the browser
+- Supports WebSocket connections for real-time streaming
+- Only active in development mode (`npm run dev`)
+
+### Examples
+
+The `examples/` directory contains working code samples:
+
+**LLM Chatbot Example** (`examples/llm-chatbot-example.js`):
+```bash
+node examples/llm-chatbot-example.js
+```
+
+Demonstrates:
+- Connecting to LM Studio
+- Generating responses in pager and fax modes
+- Handling offline fallback
+- Managing conversation history
+- Checking connection status
 
 ### Linting
 
@@ -194,6 +286,159 @@ Run tests with UI:
 npm run test:ui
 ```
 
+## LM Studio Integration
+
+### Overview
+
+Retro Messenger integrates with **LM Studio** to provide real AI-powered chatbot responses using locally-run language models. This integration demonstrates how modern LLM technology can be wrapped in nostalgic retro interfaces.
+
+### Features
+
+- **Automatic Connection**: Connects to LM Studio on application startup
+- **Graceful Fallback**: Continues working with simulated responses if LM Studio is unavailable
+- **Context Awareness**: Maintains conversation history for coherent multi-turn dialogues
+- **Mode-Specific Behavior**: AI adapts responses based on pager/fax interface mode
+- **Optimized for Retro**: Responses limited to 150 tokens for concise, display-appropriate output
+- **Streaming Responses**: Real-time token streaming for responsive user experience
+
+### Quick Start Example
+
+Try the included example to see the LLM chatbot in action:
+
+```bash
+# Make sure LM Studio is running with a model loaded
+node examples/llm-chatbot-example.js
+```
+
+This example demonstrates:
+- Connecting to LM Studio
+- Generating AI responses in both pager and fax modes
+- Handling connection failures with graceful fallback
+- Managing conversation history
+- Checking connection status
+
+### Setup Instructions
+
+1. **Install LM Studio**:
+   ```bash
+   # Download from https://lmstudio.ai
+   # Available for Windows, macOS, and Linux
+   ```
+
+2. **Download a Compatible Model**:
+   ```bash
+   # Example: Qwen2.5-7B-Instruct (recommended)
+   lms get qwen2.5-7b-instruct
+   ```
+
+3. **Load the Model**:
+   ```bash
+   lms load qwen2.5-7b-instruct
+   ```
+
+4. **Start Retro Messenger**:
+   ```bash
+   npm run dev
+   ```
+
+5. **Verify Connection**:
+   - Open browser console (F12)
+   - Look for connection messages:
+     - `Attempting to connect to LM Studio...`
+     - `Requesting model from LM Studio...`
+     - `✓ Connected to LM Studio`
+     - `✓ Using model: [Model Name]`
+   - If connection fails, detailed error messages will guide you to the solution
+   - Send a message and receive AI-powered response
+
+### Technical Details
+
+**Service Architecture** (`src/services/LLMChatbotService.js`):
+- Singleton service managing LM Studio connection
+- **Browser-Compatible Proxy**: Uses `/lmstudio` proxy URL for browser compatibility
+- **Flexible Model Loading**: Uses currently loaded model in LM Studio (no hardcoded model requirement)
+- **Enhanced Error Diagnostics**: Detailed error messages with actionable troubleshooting steps
+- **Connection Logging**: Verbose logging shows connection status and model information
+- Automatic reconnection handling
+- Conversation history management (last 20 messages)
+- Mode-aware system prompts
+- Fallback response system
+
+**Configuration**:
+- **Max Tokens**: 150 (optimized for retro display)
+- **Temperature**: 0.7 (balanced creativity)
+- **Stop Strings**: Multiple newlines to prevent verbose output
+- **History Limit**: 20 messages + system prompt
+
+**System Prompts**:
+The AI receives context-specific instructions based on interface mode:
+- Pager mode: Responds as a 1990s pager device assistant
+- Fax mode: Responds as a 1980s fax machine assistant
+- Maintains retro aesthetic with occasional ALL CAPS emphasis
+- Supports command recognition (HELP, STATUS, INFO, TIME, WEATHER)
+
+### API Reference
+
+```javascript
+import { llmChatbot } from './services/LLMChatbotService';
+
+// Connect to LM Studio
+await llmChatbot.connect();
+
+// Set interface mode (affects system prompt)
+llmChatbot.setMode('pager'); // or 'fax'
+
+// Generate AI response
+const response = await llmChatbot.generateResponse('Hello!');
+
+// Check connection status
+const isConnected = llmChatbot.isLLMConnected();
+
+// Clear conversation history
+llmChatbot.clearHistory();
+
+// Disconnect
+await llmChatbot.disconnect();
+```
+
+**See the complete working example**: `examples/llm-chatbot-example.js`
+
+### Troubleshooting
+
+**Connection fails on startup**:
+- The application provides **detailed error diagnostics** with actionable solutions in the browser console
+- Check console for specific error messages and follow the provided solutions:
+  - `"No models are loaded"` → **Solution provided**: Step-by-step guide to load a model in LM Studio
+  - `"ECONNREFUSED"`, `"Failed to fetch"`, or `"NetworkError"` → **Solution provided**: 5-step checklist to enable LM Studio server
+  - Other errors → **Troubleshooting guide provided**: General checklist for common issues
+- **Enhanced connection logging**: Console shows detailed progress with emoji indicators:
+  - 🔌 Attempting to connect...
+  - 📍 Using base URL...
+  - 🔍 Checking for loaded models...
+  - 📊 Found X loaded model(s)
+  - 🎯 Requesting model...
+  - ✅ Connected successfully
+  - 🤖 Using model: [Model Name]
+- The app uses a proxy URL (`/lmstudio`) for browser compatibility
+- Check that no firewall is blocking local connections
+
+**Slow responses**:
+- Response time depends on the model size and your hardware
+- Larger models (7B+ parameters) may require significant resources
+- Ensure sufficient GPU/CPU resources available
+- Check LM Studio performance settings
+- Consider GPU offloading settings in LM Studio for better performance
+
+**Responses don't match retro aesthetic**:
+- The system prompt guides the AI's tone
+- Responses are automatically limited to 150 tokens
+- Mode switching updates the system prompt context
+
+**Fallback mode activating unexpectedly**:
+- Check browser console for connection errors
+- Verify LM Studio server is running
+- Try reloading the page to reconnect
+
 ## Architecture
 
 ### Frontend (React)
@@ -222,11 +467,15 @@ npm run test:ui
 - Copy-to-clipboard functionality for easy sharing
 - Settings panel with toggle visibility
 
-**Chatbot Engine:**
-- Pattern matching for command recognition
-- Configurable response dictionary
-- Simulated typing delay (2 seconds)
-- Automatic response to all user messages
+**AI Chatbot Engine:**
+- **LM Studio Integration**: Real-time connection to local LLM via `@lmstudio/sdk`
+- **Intelligent Responses**: Context-aware AI responses using loaded language models
+- **Conversation Memory**: Maintains last 20 messages for coherent dialogues
+- **Mode-Aware Prompts**: System prompts adapt to pager/fax interface context
+- **Fallback System**: Automatic fallback to pattern-matching when LM Studio unavailable
+- **Response Optimization**: 150-token limit for concise, retro-appropriate responses
+- **Temperature Control**: Set to 0.7 for balanced creativity and coherence
+- **Streaming Support**: Real-time token streaming for responsive feel
 
 **Webhook Simulation:**
 - Visual transmission indicators
@@ -299,9 +548,25 @@ The message will appear in your pager or fax interface immediately.
 - Try refreshing the page
 
 ### Chatbot not responding
-- Wait 2 seconds after sending a message for the chatbot response
-- The chatbot responds to all messages automatically
-- Try sending a command like "HELP" or "STATUS"
+- **Check LM Studio connection**: Ensure LM Studio is running with any compatible model loaded
+- **Look for connection status**: Check browser console for "✓ Connected to LM Studio"
+- **Fallback mode**: If LM Studio is offline, chatbot uses simulated responses
+- **Wait for response**: AI responses may take a few seconds to generate depending on model size
+- **Try commands**: Send "HELP" or "STATUS" to test chatbot functionality
+- **Restart LM Studio**: If connection fails, restart LM Studio and reload the page
+- **Load a model**: Ensure you have a model loaded in LM Studio (e.g., `lms load qwen2.5-7b-instruct`)
+
+### LM Studio connection issues
+- **Enhanced diagnostics**: The service now provides detailed error messages with actionable solutions
+- **Improved error detection**: Service checks for loaded models before attempting connection
+- **Common error messages**:
+  - `"No models are loaded"` → **Detailed solution**: 4-step guide to load a model in LM Studio
+  - `"ECONNREFUSED"`, `"Failed to fetch"`, or `"NetworkError"` → **Detailed solution**: 5-step checklist including server enablement and port verification
+  - Generic errors → **Comprehensive troubleshooting**: 4-point checklist for common issues
+- **Visual progress indicators**: Console shows connection progress with emoji indicators (🔌 📍 🔍 📊 🎯 ✅ 🤖)
+- **Model verification**: Service lists loaded models and confirms connection before proceeding
+- **Check console**: Look for detailed error messages and follow the provided solutions
+- **Fallback works**: Application continues to function with simulated responses when LM Studio is unavailable
 
 ### Animations not working
 - Ensure you're using a modern browser (Chrome, Firefox, Safari, Edge)
@@ -375,11 +640,14 @@ For production use, consider integrating:
 - Real backend API for message persistence
 - Actual webhook endpoints for external integrations (now configurable via settings)
 - Webhook signature verification for security
-- Advanced chatbot with NLP capabilities
+- **Cloud-hosted LLM APIs** (OpenAI, Anthropic, etc.) for production AI chatbot
+- **Production LM Studio Setup**: Configure a backend proxy server for LM Studio connections (the Vite dev proxy only works in development)
 - User authentication and multi-user support
 - Message encryption and security features
 - Webhook retry logic and failure handling
 - Rate limiting for incoming webhook requests
+- LLM response caching for improved performance
+- Fine-tuned models for domain-specific conversations
 
 ## License
 
@@ -389,6 +657,43 @@ MIT
 
 Contributions are welcome! Please feel free to submit a Pull Request.
 
+## Developer Notes
+
+### LLM Integration Implementation
+
+The LM Studio integration is implemented in `src/services/LLMChatbotService.js`:
+
+**Key Methods**:
+- `connect()` - Establishes connection to LM Studio
+- `generateResponse(message)` - Generates AI response with streaming
+- `setMode(mode)` - Updates system prompt based on interface mode
+- `clearHistory()` - Resets conversation history
+- `isLLMConnected()` - Returns connection status
+
+**Integration Points**:
+- Import: `import { llmChatbot } from './services/LLMChatbotService'`
+- Initialize on component mount with `llmChatbot.connect()`
+- Call `llmChatbot.generateResponse(userMessage)` for AI responses
+- Update mode with `llmChatbot.setMode('pager')` or `llmChatbot.setMode('fax')`
+
+**Configuration**:
+- Max tokens: 150 (configurable in service)
+- Temperature: 0.7 (configurable in service)
+- History limit: 20 messages (configurable in service)
+- System prompts: Defined in `setSystemPrompt()` method
+
+### Dependencies
+
+**Core**:
+- `@lmstudio/sdk` (^1.5.0) - LM Studio JavaScript SDK
+- `react` (^18.3.1) - UI framework
+- `vite` (^6.0.1) - Build tool
+
+**Optional**:
+- LM Studio desktop application for AI chatbot functionality
+
 ## Acknowledgments
 
 Built with nostalgia for the communication devices of yesteryear. 📟📠✨
+
+Powered by [LM Studio](https://lmstudio.ai) for local AI inference.

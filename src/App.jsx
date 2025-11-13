@@ -1,5 +1,6 @@
 import React, { useState, useEffect, useRef } from 'react';
 import './App.css';
+import { useLLMChatbot } from './hooks/useLLMChatbot';
 
 const EXAMPLE_MESSAGES = [
     { sender: 'Alice', content: "Hey! How's the project?", timestamp: '14:32', type: 'received' },
@@ -14,17 +15,9 @@ const EXAMPLE_MESSAGES = [
     { sender: 'Security', content: 'Password expiry notice: 7 days', timestamp: '16:45', type: 'received' }
 ];
 
-const CHATBOT_RESPONSES = {
-    'HELP': 'Available commands: STATUS, INFO, TIME, WEATHER',
-    'STATUS': 'All systems operational. Webhook connected.',
-    'INFO': 'Retro Messenger v1.0 - AWS Kiro Enabled',
-    'TIME': new Date().toLocaleTimeString(),
-    'WEATHER': 'Temperature: 72°F, Clear skies',
-    'DEFAULT': 'Message received. Processing...'
-};
-
 function App() {
     const [mode, setMode] = useState('pager');
+    const { isConnected: llmConnected, isInitializing: llmInitializing, isGenerating: llmGenerating, generateResponse } = useLLMChatbot(mode);
     const [messages, setMessages] = useState(EXAMPLE_MESSAGES);
     const [inputMessage, setInputMessage] = useState('');
     const [webhookStatus, setWebhookStatus] = useState('connected');
@@ -75,19 +68,14 @@ function App() {
         }, 1500);
     };
 
-    const handleChatbotResponse = (userMessage) => {
+    const handleChatbotResponse = async (userMessage) => {
         setIsTyping(true);
 
-        setTimeout(() => {
-            setIsTyping(false);
-            const messageUpper = userMessage.toUpperCase();
-            let response = CHATBOT_RESPONSES.DEFAULT;
+        try {
+            // Generate response using LLM
+            const response = await generateResponse(userMessage);
 
-            Object.keys(CHATBOT_RESPONSES).forEach(key => {
-                if (messageUpper.includes(key)) {
-                    response = CHATBOT_RESPONSES[key];
-                }
-            });
+            setIsTyping(false);
 
             const botMessage = {
                 sender: 'ChatBot',
@@ -98,7 +86,19 @@ function App() {
 
             setMessages(prev => [...prev, botMessage]);
             setHasNewMessage(true);
-        }, 2000);
+        } catch (error) {
+            console.error('Chatbot error:', error);
+            setIsTyping(false);
+            
+            // Fallback message on error
+            const errorMessage = {
+                sender: 'ChatBot',
+                content: '[ERROR] Failed to generate response. Check LM Studio connection.',
+                timestamp: new Date().toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit' }),
+                type: 'bot'
+            };
+            setMessages(prev => [...prev, errorMessage]);
+        }
     };
 
     const handleClearMessages = () => {
@@ -153,7 +153,7 @@ function App() {
                     )}
                     {isTyping && (
                         <div className="typing-indicator">
-                            <span className="bot-prefix">[BOT] </span>TYPING
+                            <span className="bot-prefix">[LLM] </span>{llmGenerating ? 'GENERATING' : 'TYPING'}
                             <span className="typing-dots">
                                 <span>.</span><span>.</span><span>.</span>
                             </span>
@@ -196,7 +196,7 @@ function App() {
                     ) : (
                         <>
                             <div className="webhook-indicator"></div>
-                            <span>WEBHOOK: CONNECTED | AWS KIRO ACTIVE</span>
+                            <span>WEBHOOK: CONNECTED | LLM: {llmInitializing ? 'INIT...' : llmConnected ? 'ONLINE' : 'OFFLINE'}</span>
                         </>
                     )}
                 </div>
@@ -254,7 +254,7 @@ function App() {
                     {isTyping && (
                         <div className="fax-message" style={{color: '#666'}}>
                             <div className="fax-header-line">
-                                INCOMING TRANSMISSION...
+                                {llmGenerating ? 'LLM GENERATING RESPONSE...' : 'INCOMING TRANSMISSION...'}
                             </div>
                             <div className="typing-dots">
                                 PRINTING<span>.</span><span>.</span><span>.</span>
@@ -288,7 +288,7 @@ function App() {
                     ) : (
                         <>
                             <div className="webhook-indicator"></div>
-                            <span>LINE READY | WEBHOOK ACTIVE | AWS KIRO</span>
+                            <span>LINE READY | LLM: {llmInitializing ? 'INIT...' : llmConnected ? 'ONLINE' : 'OFFLINE'}</span>
                         </>
                     )}
                 </div>
@@ -348,6 +348,24 @@ function App() {
                         </div>
 
                         <form className="settings-form" onSubmit={handleSaveWebhookConfig}>
+                            <div className="settings-section">
+                                <h3>🤖 LLM Status</h3>
+                                <div className="llm-status-display">
+                                    <div className={`llm-status-indicator ${llmConnected ? 'connected' : 'disconnected'}`}>
+                                        {llmInitializing ? '⏳ Initializing...' : llmConnected ? '✓ Connected to LM Studio' : '✗ LM Studio Offline'}
+                                    </div>
+                                    {!llmConnected && !llmInitializing && (
+                                        <p className="settings-description" style={{color: '#ff6b6b'}}>
+                                            Start LM Studio and load a model to enable AI responses.
+                                            <br />
+                                            <a href="https://lmstudio.ai" target="_blank" rel="noopener noreferrer" style={{color: '#00ff41'}}>
+                                                Download LM Studio →
+                                            </a>
+                                        </p>
+                                    )}
+                                </div>
+                            </div>
+
                             <div className="settings-section">
                                 <h3>Your Webhook Endpoint</h3>
                                 <p className="settings-description">
