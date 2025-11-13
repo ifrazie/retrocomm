@@ -4,94 +4,111 @@
 
 ```
 retro-messenger/
-├── src/                    # Frontend React application
-├── server/                 # Backend Express server
+├── src/                    # Frontend source code
+├── server/                 # Backend API (optional)
 ├── public/                 # Static assets
+├── dist/                   # Production build output
 ├── .kiro/                  # Kiro configuration and steering
 ├── .snapshots/             # Project snapshots
 ├── node_modules/           # Dependencies
-└── [config files]          # vite.config.js, eslint.config.js, etc.
+├── index.html              # HTML entry point
+├── vite.config.js          # Vite configuration
+├── eslint.config.js        # ESLint configuration
+└── package.json            # Project metadata and scripts
 ```
 
-## Frontend Structure (`src/`)
+## Frontend Structure (`/src`)
 
 ```
 src/
-├── components/             # React components
-│   ├── PagerInterface.jsx/css      # Pager mode UI
-│   ├── FaxInterface.jsx/css        # Fax mode UI
-│   ├── StatusIndicator.jsx/css     # Connection status
-│   ├── ModeToggle.jsx/css          # Interface switcher
-│   ├── WebhookConfig.jsx/css       # Settings panel
-│   └── Toast.jsx/css               # Notification system
+├── components/             # React components (with co-located CSS)
+│   ├── PagerInterface.jsx/css
+│   ├── FaxInterface.jsx/css
+│   ├── ModeToggle.jsx/css
+│   ├── WebhookConfig.jsx/css
+│   ├── StatusIndicator.jsx/css
+│   ├── Toast.jsx/css
+│   └── *.test.jsx         # Component tests
 ├── contexts/               # React Context providers
-│   ├── MessageContext.jsx          # Message queue management
-│   └── ConfigContext.jsx           # App configuration
+│   ├── ConfigContext.jsx  # Webhook configuration state
+│   └── MessageContext.jsx # Message state management
 ├── hooks/                  # Custom React hooks
-│   ├── useSSE.js                   # Server-Sent Events
-│   └── useConnectionStatus.js      # Connection monitoring
+│   ├── useConnectionStatus.js
+│   └── useSSE.js          # Server-Sent Events hook
 ├── utils/                  # Utility functions
+│   ├── sanitize.js        # XSS protection
+│   ├── validation.js      # Input validation
+│   ├── storage.js         # LocalStorage helpers
+│   ├── retry.js           # Retry logic
+│   ├── beep.js            # Audio notifications
+│   ├── faxRenderer.js     # Fax display logic
+│   ├── layoutConfig.js    # Layout configuration
+│   └── *.test.js          # Unit tests
 ├── styles/                 # Global styles
-├── test/                   # Test setup and utilities
-├── types/                  # Type definitions (if using TypeScript)
-├── assets/                 # Images, fonts, etc.
-├── App.jsx                 # Root component
-├── App.css                 # Root styles
+│   └── global.css
+├── test/                   # Test configuration
+│   └── setup.js           # Vitest setup
+├── types/                  # Type definitions/constants
+│   └── index.js
+├── assets/                 # Images, icons
+├── App.jsx                 # Main application component
+├── App.css                 # Main application styles
 ├── main.jsx                # React entry point
-└── index.css               # Global CSS
+└── index.css               # Base styles
 ```
 
-## Backend Structure (`server/`)
+## Backend Structure (`/server`)
 
 ```
 server/
-├── routes/                 # Express route handlers
-│   ├── webhook.js                  # POST /api/webhook (receive messages)
-│   ├── messages.js                 # GET /api/messages/stream (SSE)
-│   └── send.js                     # POST /api/send (send messages)
+├── routes/                 # API route handlers
+│   ├── webhook.js         # Incoming webhook endpoint
+│   ├── messages.js        # Message CRUD operations
+│   └── send.js            # Outgoing message sender
 ├── middleware/             # Express middleware
+│   ├── auth.js            # Authentication logic
+│   └── validator.js       # Request validation
 ├── utils/                  # Server utilities
-├── test/                   # Server tests
-└── index.js                # Express app entry point
+│   └── retry.js           # Retry logic for webhooks
+├── test/                   # Backend tests
+│   ├── webhook.test.js
+│   ├── messages.test.js
+│   ├── middleware.test.js
+│   └── integration.test.js
+└── index.js                # Express server entry point
 ```
 
-## Component Organization
+## Key Conventions
 
-### Component File Pattern
-Each component typically includes:
-- `ComponentName.jsx` - Component logic
-- `ComponentName.css` - Component styles
-- `ComponentName.test.jsx` - Component tests
-- `ComponentName.example.jsx` - Usage examples (optional)
-
-### Naming Conventions
-- Components: PascalCase (e.g., `PagerInterface.jsx`)
-- Hooks: camelCase with `use` prefix (e.g., `useSSE.js`)
-- Contexts: PascalCase with `Context` suffix (e.g., `MessageContext.jsx`)
-- CSS classes: BEM-style with component prefix (e.g., `.PagerInterface__display`)
-- Private methods: underscore prefix (e.g., `_handleClick`)
-
-## Key Architectural Patterns
-
-### Context Providers
-- `ConfigProvider` - Wraps app for configuration management
-- `MessageProvider` - Wraps app for message queue management
-- Contexts loaded at root level in `App.jsx`
-
-### Error Boundaries
-- `ErrorBoundary` class component wraps main app content
-- Catches rendering errors and displays fallback UI
+### Component Organization
+- Each component has its own `.jsx` and `.css` file
+- Component tests are co-located as `*.test.jsx`
+- Components are self-contained and reusable
 
 ### State Management
-- Global state via Context API (messages, config)
-- Local state via useState for component-specific data
-- LocalStorage for persistence (preferences, webhook config)
+- Global state via Context API (ConfigContext, MessageContext)
+- Local state with useState for component-specific data
+- Custom hooks for shared stateful logic
 
-### API Communication
-- SSE for real-time incoming messages (`/api/messages/stream`)
-- REST endpoints for sending messages and webhook configuration
-- Vite proxy forwards `/api/*` requests to Express backend
+### Styling
+- Component-scoped CSS files (not CSS modules)
+- Global styles in `src/styles/global.css`
+- Retro aesthetic with CSS animations and custom properties
+- BEM-like naming conventions for CSS classes
 
-## Testing Structure
+### Testing
+- Unit tests for utilities (`*.test.js`)
+- Component tests for React components (`*.test.jsx`)
+- Integration tests for API endpoints (in `server/test/`)
+- Test files co-located with source files
 
-Tests are co-located with components and use Vitest + Testing Library. Test setup is in `src/test/setup.js`.
+### File Naming
+- React components: PascalCase (e.g., `PagerInterface.jsx`)
+- Utilities/hooks: camelCase (e.g., `useConnectionStatus.js`)
+- CSS files: Match component name (e.g., `PagerInterface.css`)
+- Test files: Match source file with `.test` suffix
+
+### Import Patterns
+- Absolute imports from `src/` root
+- Named exports preferred over default exports for utilities
+- Default exports for React components

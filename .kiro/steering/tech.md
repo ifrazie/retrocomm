@@ -2,58 +2,58 @@
 
 ## Frontend
 
-- **React 18.3** - UI framework with hooks for state management
-- **Vite 6.0** - Build tool and development server
-- **React Router DOM 6.28** - Client-side routing
-- **DOMPurify 3.2** - XSS protection and content sanitization
-- **Canvas API** - Fax document rendering with texture effects
+- **React 18** - Component-based UI with hooks (useState, useEffect, useRef)
+- **Vite** - Fast development server and optimized production builds
+- **CSS3** - Custom styling with animations, Grid, Flexbox, CSS Custom Properties
+- **JavaScript ES6+** - Modern JavaScript with modules
 
-## Backend
+## Backend (Optional)
 
-- **Node.js** with ES modules (`"type": "module"`)
-- **Express 4.21** - Web server framework
-- **CORS 2.8** - Cross-origin resource sharing
-- **UUID 11.0** - Unique message ID generation
-- **Server-Sent Events (SSE)** - Real-time message streaming
+- **Express.js** - REST API server for webhook handling
+- **Node.js** - Runtime environment
+- **CORS** - Cross-origin resource sharing middleware
 
-## Testing
+## Key Dependencies
 
-- **Vitest 4.0** - Test runner
-- **Testing Library** - React component testing
-- **Happy-DOM / JSDOM** - DOM environment for tests
-- **Supertest 7.1** - HTTP assertion library
+- `react` & `react-dom` - UI framework
+- `react-router-dom` - Client-side routing
+- `uuid` - Unique identifier generation
+- `dompurify` - XSS sanitization
+- `express` & `cors` - Backend server (optional)
 
 ## Development Tools
 
+- **Vitest** - Unit testing framework with jsdom/happy-dom
+- **Testing Library** - React component testing (@testing-library/react, @testing-library/jest-dom)
 - **ESLint** - Code linting with React hooks plugin
-- **Vite Dev Server** - Hot module replacement
-- **Proxy Configuration** - `/api` routes proxied to backend
+- **Supertest** - HTTP assertion testing
 
 ## Common Commands
 
-### Development
 ```bash
-npm run dev          # Start Vite dev server (port 5173)
-npm run server       # Start Express backend (port 3001)
+# Development
+npm run dev              # Start Vite dev server (http://localhost:5173)
+npm run server           # Start Express backend (http://localhost:3001)
+
+# Building
+npm run build            # Production build to /dist
+npm run preview          # Preview production build
+
+# Testing
+npm test                 # Run tests once
+npm run test:watch       # Run tests in watch mode
+npm run test:ui          # Run tests with UI
 ```
 
-### Testing
-```bash
-npm test             # Run tests once
-npm run test:watch   # Run tests in watch mode
-npm run test:ui      # Run tests with UI
-```
+## Build Configuration
 
-### Build & Deploy
-```bash
-npm run build        # Build for production (outputs to dist/)
-npm run preview      # Preview production build
-```
+- **Vite Config**: API proxy to localhost:3001, jsdom test environment
+- **ESLint Config**: React hooks rules, browser globals, ES2020+
+- **Test Setup**: Global test utilities in `src/test/setup.js`
 
-## Architecture Notes
+## Architecture Pattern
 
-- Frontend and backend run as separate processes in development
-- API requests from frontend are proxied to backend via Vite config
-- SSE connection established on app load for real-time messaging
-- Context API used for global state (MessageContext, ConfigContext)
-- LocalStorage used for persisting user preferences and configuration
+- **Component-based**: Modular React components with co-located CSS
+- **Context API**: State management via React Context (ConfigContext, MessageContext)
+- **Custom Hooks**: Reusable logic (useConnectionStatus, useSSE)
+- **Utility Functions**: Shared helpers in `/src/utils` and `/server/utils`

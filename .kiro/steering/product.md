@@ -1,27 +1,27 @@
 # Product Overview
 
-Retro Messenger is a nostalgic web application that reimagines modern messaging through the lens of 1980s-90s technology. It provides two distinct retro communication interfaces:
+**Retro Messenger** is a nostalgic web application that reimagines modern messaging through the aesthetic lens of 1980s-90s communication devices (pagers and fax machines).
 
-## Core Interfaces
+## Core Concept
 
-**Pager Mode**: Classic green-on-black LCD display with 240-character limit, CRT effects, and authentic pager aesthetics.
-
-**Fax Mode**: Vintage fax machine interface with progressive line-by-line transmission animation, paper texture, and document archiving.
+Transform contemporary messaging into an immersive retro experience while maintaining full modern functionality including webhook integrations and AI chatbot responses.
 
 ## Key Features
 
-- Webhook-based messaging system for receiving and sending messages
-- Real-time message delivery via Server-Sent Events (SSE)
-- Seamless mode switching between pager and fax interfaces
-- Configurable webhook endpoints with optional Bearer token authentication
-- Message history (50 messages for pager, 100 for fax)
-- XSS protection with content sanitization
-- Responsive design with authentic retro visual effects
+- **Dual Interface Modes**: Pager (green LCD display) and Fax (thermal printer styling)
+- **Webhook Integration**: Configurable outgoing webhooks with authentication, incoming webhook endpoint
+- **AI Chatbot**: Automated responses with command recognition (HELP, STATUS, INFO, TIME, WEATHER)
+- **Retro Aesthetics**: Authentic 80s/90s device styling with CRT effects, dot-matrix fonts, LED indicators
+- **Message Management**: Real-time messaging with delivery status, history tracking, and visual transmission animations
 
-## Target Use Case
+## Target Experience
 
-This is a Devpost hackathon submission for the "Code with Kiro" Kiroween theme, demonstrating how AWS Kiro's AI-powered development capabilities can accelerate creation of complex applications that blend retro aesthetics with modern webhook and chatbot integration.
+Users interact with a fully functional messaging system wrapped in nostalgic design that evokes the charm of vintage pagers and fax machines, demonstrating how modern technology can be presented through retro interfaces.
 
-## User Experience
+## Hackathon Context
 
-Users can send and receive messages through either interface, configure webhook endpoints for integration with external services, and enjoy an immersive retro communication experience with authentic visual effects, animations, and sound notifications.
+Built for **Kiroween Hackathon 2025** (Code with Kiro) to showcase:
+- AWS Kiro's AI-powered development capabilities
+- Webhook and chatbot integration patterns
+- Spec-driven development workflow
+- Creative UI/UX design with technical depth
