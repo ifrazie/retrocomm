@@ -1,59 +1,87 @@
 # Technology Stack
 
-## Frontend
+## Build System & Tooling
 
-- **React 18** - Component-based UI with hooks (useState, useEffect, useRef)
-- **Vite** - Fast development server and optimized production builds
-- **CSS3** - Custom styling with animations, Grid, Flexbox, CSS Custom Properties
-- **JavaScript ES6+** - Modern JavaScript with modules
+- **Build Tool**: Vite 6.0+ (fast development server with HMR)
+- **Package Manager**: npm
+- **Module System**: ES Modules (type: "module" in package.json)
+- **TypeScript**: Configured but optional (gradual migration approach)
 
-## Backend (Optional)
+## Frontend Stack
 
-- **Express.js** - REST API server for webhook handling
-- **Node.js** - Runtime environment
-- **CORS** - Cross-origin resource sharing middleware
+- **Framework**: React 18.3+ with hooks (functional components only)
+- **Styling**: Pure CSS3 with CSS Grid, Flexbox, and custom properties
+- **Routing**: React Router DOM 6.28+ (if needed for multi-page features)
+- **State Management**: React hooks (useState, useEffect, useRef) - no external state library
 
-## Key Dependencies
+## AI & Integration
 
-- `react` & `react-dom` - UI framework
-- `react-router-dom` - Client-side routing
-- `uuid` - Unique identifier generation
-- `dompurify` - XSS sanitization
-- `express` & `cors` - Backend server (optional)
+- **LLM SDK**: @lmstudio/sdk ^1.5.0 for local AI model integration
+- **Chatbot Service**: Custom singleton service (`src/services/LLMChatbotService.js`)
+- **Proxy Configuration**: Vite dev proxy routes `/lmstudio` to `http://127.0.0.1:1234`
 
-## Development Tools
+## Backend (Optional/Demo)
 
-- **Vitest** - Unit testing framework with jsdom/happy-dom
-- **Testing Library** - React component testing (@testing-library/react, @testing-library/jest-dom)
-- **ESLint** - Code linting with React hooks plugin
-- **Supertest** - HTTP assertion testing
+- **Server**: Express 4.21+ (for webhook endpoints in `server/` directory)
+- **CORS**: cors ^2.8.5
+- **Note**: Backend is optional; frontend works standalone
+
+## Testing
+
+- **Test Runner**: Vitest 4.0+ with jsdom/happy-dom environment
+- **Testing Library**: @testing-library/react ^16.3.0
+- **Test Utils**: @testing-library/user-event, @testing-library/jest-dom
+- **Server Testing**: supertest ^7.1.4
+
+## Utilities
+
+- **UUID Generation**: uuid ^11.0.3
+- **Sanitization**: dompurify ^3.2.2
+- **TypeScript Execution**: tsx ^4.20.6 (for running examples)
 
 ## Common Commands
 
 ```bash
 # Development
 npm run dev              # Start Vite dev server (http://localhost:5173)
-npm run server           # Start Express backend (http://localhost:3001)
 
 # Building
-npm run build            # Production build to /dist
+npm run build            # TypeScript check + Vite build
 npm run preview          # Preview production build
 
 # Testing
-npm test                 # Run tests once
+npm test                 # Run tests once (CI mode)
 npm run test:watch       # Run tests in watch mode
-npm run test:ui          # Run tests with UI
+npm run test:ui          # Run tests with Vitest UI
+
+# Type Checking
+npm run type-check       # Run TypeScript compiler without emitting files
+
+# Backend (Optional)
+npm run server           # Start Express server (http://localhost:3001)
+
+# Examples
+npm run example:llm      # Run LLM chatbot example
 ```
 
-## Build Configuration
+## Development Proxy Configuration
 
-- **Vite Config**: API proxy to localhost:3001, jsdom test environment
-- **ESLint Config**: React hooks rules, browser globals, ES2020+
-- **Test Setup**: Global test utilities in `src/test/setup.js`
+Vite proxy routes for local development:
+- `/api` → `http://localhost:3001` (Express backend)
+- `/lmstudio` → `http://127.0.0.1:1234` (LM Studio local server)
 
-## Architecture Pattern
+## Browser Compatibility
 
-- **Component-based**: Modular React components with co-located CSS
-- **Context API**: State management via React Context (ConfigContext, MessageContext)
-- **Custom Hooks**: Reusable logic (useConnectionStatus, useSSE)
-- **Utility Functions**: Shared helpers in `/src/utils` and `/server/utils`
+- Chrome/Edge 90+
+- Firefox 88+
+- Safari 14+
+- Opera 76+
+
+Requires modern JavaScript (ES2020) and CSS3 support.
+
+## External Dependencies
+
+**Optional**: LM Studio desktop application for AI chatbot functionality
+- Download from https://lmstudio.ai
+- Compatible models: Qwen2.5-7B-Instruct, Llama, etc.
+- Default port: 1234
