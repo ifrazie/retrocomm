@@ -38,4 +38,5 @@ const ModeToggle = () => {
   );
 };
 
-export default ModeToggle;
+// Memoize to prevent unnecessary re-renders when parent re-renders
+export default React.memo(ModeToggle);

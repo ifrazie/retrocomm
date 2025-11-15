@@ -16,7 +16,11 @@ A nostalgic web application that brings vintage communication devices (pagers an
 ### 🟢 Pager Mode
 - Classic green-on-black monospace LCD display
 - Authentic pager interface with physical button controls
-- Displays last 5 messages with sender, timestamp, and content
+- Displays last 5 messages with structured format:
+  - Message number (MSG #X FROM: sender)
+  - Timestamp (TIME: HH:MM)
+  - Message content (TEXT: content)
+  - Delivery status indicator
 - Message status indicators (SENDING, DELIVERED)
 - Alert LED for new unread messages
 - CRT screen effects with retro styling
@@ -25,8 +29,13 @@ A nostalgic web application that brings vintage communication devices (pagers an
 - Vintage thermal fax machine interface
 - Dot-matrix printer styling with paper texture
 - Progressive transmission animation with scanning line
-- Full message history displayed as fax documents
-- Page headers with sender, date, and page numbers
+- Full message history displayed as fax documents with professional formatting:
+  - Header with sender information (FROM: sender)
+  - Date and timestamp (DATE: MM/DD/YYYY HH:MM)
+  - Page numbering (PAGE: X OF Y)
+  - Message type indicator for automated messages (TYPE: AUTOMATED)
+  - Separated message content with proper spacing
+  - Status footer (STATUS: DELIVERED/SENDING)
 - Authentic fax machine controls and indicators
 
 ### 🤖 AI-Powered Chatbot (LM Studio Integration)
@@ -56,6 +65,7 @@ A nostalgic web application that brings vintage communication devices (pagers an
 - Responsive design for mobile and desktop
 - Retro-themed header with nostalgic branding
 - Kiroween Hackathon 2025 themed footer
+- **Accessibility**: All interactive buttons include ARIA labels for screen reader support
 
 ## Prerequisites
 
@@ -271,6 +281,8 @@ npm run type-check
 
 ### Testing
 
+The project includes comprehensive test coverage with unit, integration, and accessibility tests.
+
 Run the test suite:
 ```bash
 npm test
@@ -285,6 +297,20 @@ Run tests with UI:
 ```bash
 npm run test:ui
 ```
+
+**Test Coverage**:
+- **Unit Tests**: Individual component and utility function tests
+- **Integration Tests**: End-to-end message flow and user interaction tests
+- **Accessibility Tests**: ARIA label and keyboard navigation tests
+- **Error Handling Tests**: Chatbot error scenarios and edge cases
+
+**Integration Test Features** (`src/App.integration.test.jsx`):
+- Message creation with unique ID verification
+- React key warning detection (ensures no duplicate key errors)
+- Message rendering in both pager and fax modes
+- Mode switching with message persistence
+- Bot response generation with unique IDs
+- Multi-message flow testing
 
 ## LM Studio Integration
 
@@ -446,6 +472,7 @@ await llmChatbot.disconnect();
 - **Vite** for fast development and optimized builds
 - **TypeScript** support configured for future migration
 - **ESLint** with TypeScript rules for code quality
+- **Vitest** with React Testing Library for comprehensive test coverage
 - **Standalone application** - No backend required
 - **CSS Grid** and Flexbox for responsive layouts
 - **CSS Custom Properties** for themeable, responsive design
@@ -454,10 +481,11 @@ await llmChatbot.disconnect();
 ### Key Features Implementation
 
 **Message Management:**
-- Messages stored in component state
+- Messages stored in component state with unique IDs
 - Pre-loaded with 10 example messages
 - Message types: 'sent', 'received', 'bot'
 - Status tracking: 'sending', 'delivered'
+- Unique ID generation for React key optimization (prevents duplicate key warnings)
 
 **Webhook Configuration:**
 - Persistent webhook settings stored in component state

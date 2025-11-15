@@ -1,18 +1,28 @@
-import React, { useState, useEffect, useRef } from 'react';
+import React, { useState, useEffect, useRef, useCallback, useMemo } from 'react';
 import './App.css';
 import { useLLMChatbot } from './hooks/useLLMChatbot';
+import { generateMessageId } from './utils/generateId';
+import { logger } from './utils/logger';
+import Toast from './components/Toast';
+import './styles/toast.css';
+import {
+    MAX_PAGER_MESSAGES,
+    WEBHOOK_DELAY_MS,
+    COPY_FEEDBACK_DURATION_MS,
+    TOAST_DURATION_MS
+} from './utils/constants';
 
 const EXAMPLE_MESSAGES = [
-    { sender: 'Alice', content: "Hey! How's the project?", timestamp: '14:32', type: 'received' },
-    { sender: 'Bob', content: 'Running late to meeting', timestamp: '14:45', type: 'received' },
-    { sender: 'ChatBot', content: 'Temperature: 72°F, Humidity: 45%', timestamp: '15:00', type: 'bot' },
-    { sender: 'Manager', content: 'Send status report ASAP', timestamp: '15:15', type: 'received' },
-    { sender: 'System', content: 'Network connectivity restored', timestamp: '15:30', type: 'bot' },
-    { sender: 'Alice', content: 'Meeting at 4pm confirmed', timestamp: '15:45', type: 'received' },
-    { sender: 'DevOps', content: 'Server deployment successful', timestamp: '16:00', type: 'received' },
-    { sender: 'ChatBot', content: 'Reminder: Team standup in 15 mins', timestamp: '16:15', type: 'bot' },
-    { sender: 'Bob', content: 'Code review completed', timestamp: '16:30', type: 'received' },
-    { sender: 'Security', content: 'Password expiry notice: 7 days', timestamp: '16:45', type: 'received' }
+    { id: generateMessageId(), sender: 'Alice', content: "Hey! How's the project?", timestamp: '14:32', type: 'received' },
+    { id: generateMessageId(), sender: 'Bob', content: 'Running late to meeting', timestamp: '14:45', type: 'received' },
+    { id: generateMessageId(), sender: 'ChatBot', content: 'Temperature: 72°F, Humidity: 45%', timestamp: '15:00', type: 'bot' },
+    { id: generateMessageId(), sender: 'Manager', content: 'Send status report ASAP', timestamp: '15:15', type: 'received' },
+    { id: generateMessageId(), sender: 'System', content: 'Network connectivity restored', timestamp: '15:30', type: 'bot' },
+    { id: generateMessageId(), sender: 'Alice', content: 'Meeting at 4pm confirmed', timestamp: '15:45', type: 'received' },
+    { id: generateMessageId(), sender: 'DevOps', content: 'Server deployment successful', timestamp: '16:00', type: 'received' },
+    { id: generateMessageId(), sender: 'ChatBot', content: 'Reminder: Team standup in 15 mins', timestamp: '16:15', type: 'bot' },
+    { id: generateMessageId(), sender: 'Bob', content: 'Code review completed', timestamp: '16:30', type: 'received' },
+    { id: generateMessageId(), sender: 'Security', content: 'Password expiry notice: 7 days', timestamp: '16:45', type: 'received' }
 ];
 
 function App() {
@@ -30,20 +40,64 @@ function App() {
         enableAuth: false
     });
     const [copied, setCopied] = useState(false);
+    const [toast, setToast] = useState(null);
     const messagesEndRef = useRef(null);
+    const modalTriggerRef = useRef(null); // Store element that opened modal for focus return
 
-    const scrollToBottom = () => {
+    const showToast = useCallback((message, type = 'info', duration = TOAST_DURATION_MS) => {
+        setToast({ message, type, duration });
+    }, []);
+
+    const hideToast = useCallback(() => {
+        setToast(null);
+    }, []);
+
+    const scrollToBottom = useCallback(() => {
         messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
-    };
+    }, []);
 
     useEffect(() => {
         scrollToBottom();
-    }, [messages]);
+    }, [messages, scrollToBottom]);
 
-    const handleSendMessage = () => {
+    // Handle Escape key to close modal
+    useEffect(() => {
+        if (!showSettings) return;
+
+        const handleEscape = (e) => {
+            if (e.key === 'Escape') {
+                setShowSettings(false);
+            }
+        };
+
+        document.addEventListener('keydown', handleEscape);
+        return () => document.removeEventListener('keydown', handleEscape);
+    }, [showSettings]);
+
+    // Focus management for modal
+    useEffect(() => {
+        if (showSettings) {
+            // Store the element that opened the modal
+            modalTriggerRef.current = document.activeElement;
+
+            // Focus the first focusable element in the modal
+            setTimeout(() => {
+                const modal = document.querySelector('.settings-modal');
+                const firstFocusable = modal?.querySelector('button, input, select, textarea, [tabindex]:not([tabindex="-1"])');
+                firstFocusable?.focus();
+            }, 0);
+        } else if (modalTriggerRef.current) {
+            // Return focus to the element that opened the modal
+            modalTriggerRef.current.focus();
+            modalTriggerRef.current = null;
+        }
+    }, [showSettings]);
+
+    const handleSendMessage = useCallback(() => {
         if (!inputMessage.trim()) return;
 
         const newMessage = {
+            id: generateMessageId(),
             sender: 'You',
             content: inputMessage,
             timestamp: new Date().toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit' }),
@@ -51,12 +105,15 @@ function App() {
             status: 'sending'
         };
 
-        setMessages([...messages, newMessage]);
+        // React 18 automatically batches these state updates in event handlers
+        // This prevents multiple re-renders and improves performance
+        setMessages(prev => [...prev, newMessage]);
         setInputMessage('');
         setWebhookStatus('sending');
         setHasNewMessage(true);
 
         // Simulate webhook delivery
+        const messageToSend = inputMessage;
         setTimeout(() => {
             setMessages(prev => prev.map((msg, idx) => 
                 idx === prev.length - 1 ? { ...msg, status: 'delivered' } : msg
@@ -64,11 +121,11 @@ function App() {
             setWebhookStatus('connected');
 
             // Trigger chatbot response
-            handleChatbotResponse(inputMessage);
-        }, 1500);
-    };
+            handleChatbotResponse(messageToSend);
+        }, WEBHOOK_DELAY_MS);
+    }, [inputMessage]);
 
-    const handleChatbotResponse = async (userMessage) => {
+    const handleChatbotResponse = useCallback(async (userMessage) => {
         setIsTyping(true);
 
         try {
@@ -78,6 +135,7 @@ function App() {
             setIsTyping(false);
 
             const botMessage = {
+                id: generateMessageId(),
                 sender: 'ChatBot',
                 content: response,
                 timestamp: new Date().toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit' }),
@@ -87,11 +145,12 @@ function App() {
             setMessages(prev => [...prev, botMessage]);
             setHasNewMessage(true);
         } catch (error) {
-            console.error('Chatbot error:', error);
+            logger.error('Chatbot error:', error);
             setIsTyping(false);
             
             // Fallback message on error
             const errorMessage = {
+                id: generateMessageId(),
                 sender: 'ChatBot',
                 content: '[ERROR] Failed to generate response. Check LM Studio connection.',
                 timestamp: new Date().toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit' }),
@@ -99,29 +158,57 @@ function App() {
             };
             setMessages(prev => [...prev, errorMessage]);
         }
-    };
+    }, [generateResponse]);
 
-    const handleClearMessages = () => {
+    const handleClearMessages = useCallback(() => {
         setMessages([]);
         setHasNewMessage(false);
-    };
+    }, []);
 
-    const handleCopyWebhookUrl = async () => {
+    const handleCopyWebhookUrl = useCallback(async () => {
         const backendWebhookUrl = `${window.location.origin}/api/webhook`;
         try {
             await navigator.clipboard.writeText(backendWebhookUrl);
             setCopied(true);
-            setTimeout(() => setCopied(false), 2000);
+            setTimeout(() => setCopied(false), COPY_FEEDBACK_DURATION_MS);
         } catch (error) {
-            console.error('Failed to copy to clipboard:', error);
-            alert('Failed to copy URL. Please copy manually.');
+            logger.error('Failed to copy to clipboard:', error);
+            showToast('Failed to copy URL. Please copy manually.', 'error');
         }
-    };
+    }, [showToast]);
 
-    const handleSaveWebhookConfig = (e) => {
+    const handleSaveWebhookConfig = useCallback((e) => {
         e.preventDefault();
         setShowSettings(false);
-    };
+    }, []);
+
+    // Memoize mode switching callbacks
+    const handleModeChangeToPager = useCallback(() => setMode('pager'), []);
+    const handleModeChangeToFax = useCallback(() => setMode('fax'), []);
+    const handleOpenSettings = useCallback(() => setShowSettings(true), []);
+    const handleCloseSettings = useCallback(() => setShowSettings(false), []);
+    const handleMarkAsRead = useCallback(() => setHasNewMessage(false), []);
+    const handleScrollToTop = useCallback(() => window.scrollTo(0, 0), []);
+    const handleScrollToBottom = useCallback(() => window.scrollTo(0, document.body.scrollHeight), []);
+
+    // Memoize input handlers
+    const handleInputChange = useCallback((e) => setInputMessage(e.target.value), []);
+    const handleKeyPress = useCallback((e) => {
+        if (e.key === 'Enter') {
+            handleSendMessage();
+        }
+    }, [handleSendMessage]);
+
+    // Memoize recent messages for pager view
+    const recentPagerMessages = useMemo(() => {
+        return messages.slice(-MAX_PAGER_MESSAGES);
+    }, [messages]);
+
+    // Memoize message numbering info
+    const messageNumberingInfo = useMemo(() => {
+        const startIndex = Math.max(0, messages.length - MAX_PAGER_MESSAGES);
+        return { startIndex, total: messages.length };
+    }, [messages.length]);
 
     const renderPagerView = () => (
         <div className="pager-device">
@@ -134,11 +221,11 @@ function App() {
                     {messages.length === 0 ? (
                         <div>NO MESSAGES</div>
                     ) : (
-                        messages.slice(-5).map((msg, idx) => (
-                            <div key={idx} className="pager-message">
+                        recentPagerMessages.map((msg, idx) => (
+                            <div key={msg.id} className="pager-message">
                                 <div>
                                     {msg.type === 'bot' && <span className="bot-prefix">[BOT] </span>}
-                                    MSG #{messages.length - 5 + idx + 1} FROM: {msg.sender}
+                                    MSG #{messageNumberingInfo.startIndex + idx + 1} FROM: {msg.sender}
                                 </div>
                                 <div>TIME: {msg.timestamp}</div>
                                 <div>TEXT: {msg.content}</div>
@@ -164,12 +251,12 @@ function App() {
             </div>
 
             <div className="pager-controls">
-                <button className="pager-btn" onClick={() => window.scrollTo(0, 0)}>▲ UP</button>
-                <button className="pager-btn" onClick={() => setMode('fax')}>📠 FAX</button>
-                <button className="pager-btn" onClick={() => window.scrollTo(0, document.body.scrollHeight)}>▼ DOWN</button>
-                <button className="pager-btn" onClick={handleClearMessages}>✕ CLEAR</button>
-                <button className="pager-btn" onClick={() => setShowSettings(true)}>⚙ MENU</button>
-                <button className="pager-btn" onClick={() => setHasNewMessage(false)}>✓ READ</button>
+                <button className="pager-btn" onClick={handleScrollToTop} aria-label="Scroll to top">▲ UP</button>
+                <button className="pager-btn" onClick={handleModeChangeToFax} aria-label="Switch to fax mode">📠 FAX</button>
+                <button className="pager-btn" onClick={handleScrollToBottom} aria-label="Scroll to bottom">▼ DOWN</button>
+                <button className="pager-btn" onClick={handleClearMessages} aria-label="Clear all messages">✕ CLEAR</button>
+                <button className="pager-btn" onClick={handleOpenSettings} aria-label="Open settings menu">⚙ MENU</button>
+                <button className="pager-btn" onClick={handleMarkAsRead} aria-label="Mark messages as read">✓ READ</button>
             </div>
 
             <div className="input-area">
@@ -179,8 +266,8 @@ function App() {
                         className="message-input"
                         placeholder="Type message..."
                         value={inputMessage}
-                        onChange={(e) => setInputMessage(e.target.value)}
-                        onKeyPress={(e) => e.key === 'Enter' && handleSendMessage()}
+                        onChange={handleInputChange}
+                        onKeyPress={handleKeyPress}
                     />
                     <button className="send-btn" onClick={handleSendMessage}>
                         SEND
@@ -220,12 +307,12 @@ function App() {
                     {webhookStatus === 'sending' && <div className="scanning-line"></div>}
                     
                     {messages.length === 0 ? (
-                        <div style={{textAlign: 'center', padding: '40px', color: '#999'}}>
+                        <div className="fax-empty-state">
                             NO FAX RECEIVED
                         </div>
                     ) : (
                         messages.map((msg, idx) => (
-                            <div key={idx} className="fax-message">
+                            <div key={msg.id} className="fax-message">
                                 <div className="fax-header-line">
                                     ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
                                 </div>
@@ -240,11 +327,11 @@ function App() {
                                 <div className="fax-header-line">
                                     ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
                                 </div>
-                                <div style={{marginTop: '15px', marginBottom: '15px'}}>
+                                <div className="fax-message-content">
                                     {msg.content}
                                 </div>
                                 {msg.status && (
-                                    <div style={{fontSize: '10px', color: '#666'}}>
+                                    <div className="fax-status">
                                         STATUS: {msg.status.toUpperCase()}
                                     </div>
                                 )}
@@ -272,8 +359,8 @@ function App() {
                         className="message-input"
                         placeholder="Type message to send..."
                         value={inputMessage}
-                        onChange={(e) => setInputMessage(e.target.value)}
-                        onKeyPress={(e) => e.key === 'Enter' && handleSendMessage()}
+                        onChange={handleInputChange}
+                        onKeyPress={handleKeyPress}
                     />
                     <button className="send-btn" onClick={handleSendMessage}>
                         TRANSMIT
@@ -295,10 +382,10 @@ function App() {
             </div>
 
             <div className="pager-controls">
-                <button className="pager-btn" onClick={() => setMode('pager')}>📟 PAGER</button>
-                <button className="pager-btn" onClick={handleClearMessages}>🗑 CLEAR</button>
-                <button className="pager-btn" onClick={() => setShowSettings(true)}>⚙ MENU</button>
-                <button className="pager-btn" onClick={() => setHasNewMessage(false)}>✓ READ</button>
+                <button className="pager-btn" onClick={handleModeChangeToPager} aria-label="Switch to pager mode">📟 PAGER</button>
+                <button className="pager-btn" onClick={handleClearMessages} aria-label="Clear all messages">🗑 CLEAR</button>
+                <button className="pager-btn" onClick={handleOpenSettings} aria-label="Open settings menu">⚙ MENU</button>
+                <button className="pager-btn" onClick={handleMarkAsRead} aria-label="Mark messages as read">✓ READ</button>
             </div>
 
             <div className="device-label">
@@ -320,13 +407,15 @@ function App() {
                 <div className="mode-switcher">
                     <button 
                         className={`mode-btn pager ${mode === 'pager' ? 'active' : ''}`}
-                        onClick={() => setMode('pager')}
+                        onClick={handleModeChangeToPager}
+                        aria-label="Switch to pager mode"
                     >
                         📟 Pager Mode
                     </button>
                     <button 
                         className={`mode-btn fax ${mode === 'fax' ? 'active' : ''}`}
-                        onClick={() => setMode('fax')}
+                        onClick={handleModeChangeToFax}
+                        aria-label="Switch to fax mode"
                     >
                         📠 Fax Mode
                     </button>
@@ -339,12 +428,33 @@ function App() {
                 🎃 Kiroween Hackathon 2025 | Powered by <a href="https://aws.amazon.com" target="_blank" rel="noopener noreferrer">AWS Kiro</a> Webhooks &amp; Chatbots
             </div>
 
+            {toast && (
+                <Toast
+                    message={toast.message}
+                    type={toast.type}
+                    duration={toast.duration}
+                    onClose={hideToast}
+                />
+            )}
+
             {showSettings && (
-                <div className="settings-modal-overlay" onClick={() => setShowSettings(false)}>
+                <div 
+                    className="settings-modal-overlay" 
+                    onClick={handleCloseSettings}
+                    role="dialog"
+                    aria-modal="true"
+                    aria-labelledby="settings-modal-title"
+                >
                     <div className="settings-modal" onClick={(e) => e.stopPropagation()}>
                         <div className="settings-header">
-                            <h2>⚙ WEBHOOK CONFIGURATION</h2>
-                            <button className="settings-close" onClick={() => setShowSettings(false)}>×</button>
+                            <h2 id="settings-modal-title">⚙ WEBHOOK CONFIGURATION</h2>
+                            <button 
+                                className="settings-close" 
+                                onClick={handleCloseSettings}
+                                aria-label="Close settings"
+                            >
+                                ×
+                            </button>
                         </div>
 
                         <form className="settings-form" onSubmit={handleSaveWebhookConfig}>
@@ -441,7 +551,7 @@ function App() {
                                 <button
                                     type="button"
                                     className="settings-cancel-btn"
-                                    onClick={() => setShowSettings(false)}
+                                    onClick={handleCloseSettings}
                                 >
                                     Cancel
                                 </button>

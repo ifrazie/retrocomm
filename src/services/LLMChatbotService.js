@@ -1,4 +1,13 @@
 import { LMStudioClient } from "@lmstudio/sdk";
+import {
+    MAX_LLM_TOKENS,
+    LLM_TEMPERATURE,
+    MAX_CONVERSATION_HISTORY
+} from '../utils/constants.js';
+import { cleanLLMResponse } from '../utils/cleanLLMResponse.js';
+
+// Check if we're in development mode for logging
+const isDevelopment = import.meta.env.DEV;
 
 /**
  * LLM-powered chatbot service using LM Studio
@@ -18,66 +27,84 @@ class LLMChatbotService {
    */
   async connect() {
     try {
-      console.log('🔌 Attempting to connect to LM Studio...');
+      if (isDevelopment) {
+        console.log('🔌 Attempting to connect to LM Studio...');
+      }
       
       // Use WebSocket URL for LM Studio connection
       // Convert http:// to ws:// or https:// to wss://
       const protocol = window.location.protocol === 'https:' ? 'wss:' : 'ws:';
       const baseUrl = `${protocol}//${window.location.host}/lmstudio`;
-      console.log('📍 Using base URL:', baseUrl);
+      
+      if (isDevelopment) {
+        console.log('📍 Using base URL:', baseUrl);
+      }
       
       this.client = new LMStudioClient({ baseUrl });
       
       // First, try to list loaded models to verify connection
-      console.log('🔍 Checking for loaded models...');
+      if (isDevelopment) {
+        console.log('🔍 Checking for loaded models...');
+      }
+      
       const loadedModels = await this.client.llm.listLoaded();
-      console.log('📊 Found', loadedModels.length, 'loaded model(s)');
+      
+      if (isDevelopment) {
+        console.log('📊 Found', loadedModels.length, 'loaded model(s)');
+      }
       
       if (loadedModels.length === 0) {
         throw new Error('No models are loaded in LM Studio. Please load a model first.');
       }
       
       // Try to get the currently loaded model
-      console.log('🎯 Requesting model from LM Studio...');
+      if (isDevelopment) {
+        console.log('🎯 Requesting model from LM Studio...');
+      }
+      
       this.model = await this.client.llm.model();
       
       this.isConnected = true;
       
-      console.log('✅ Connected to LM Studio');
-      console.log('🤖 Model loaded successfully');
+      if (isDevelopment) {
+        console.log('✅ Connected to LM Studio');
+        console.log('🤖 Model loaded successfully');
+      }
       
       // Initialize with system prompt
       this.setSystemPrompt();
       
       return true;
     } catch (error) {
-      console.error('❌ Failed to connect to LM Studio');
-      console.error('📝 Error message:', error.message);
-      console.error('🔍 Full error:', error);
-      
-      // Provide helpful error messages
-      if (error.message?.includes('No models are loaded')) {
-        console.error('');
-        console.error('💡 SOLUTION:');
-        console.error('   1. Open LM Studio');
-        console.error('   2. Go to "My Models" tab');
-        console.error('   3. Click "Load" on any model');
-        console.error('   4. Or use CLI: lms load <model-name>');
-      } else if (error.message?.includes('ECONNREFUSED') || error.message?.includes('Failed to fetch') || error.message?.includes('NetworkError')) {
-        console.error('');
-        console.error('💡 SOLUTION:');
-        console.error('   1. Make sure LM Studio is running');
-        console.error('   2. In LM Studio, go to Developer tab');
-        console.error('   3. Enable "Local Server"');
-        console.error('   4. Check it\'s running on port 1234');
-        console.error('   5. Restart your dev server (npm run dev)');
-      } else {
-        console.error('');
-        console.error('💡 TROUBLESHOOTING:');
-        console.error('   • Is LM Studio running?');
-        console.error('   • Is a model loaded?');
-        console.error('   • Is the local server enabled?');
-        console.error('   • Try restarting both LM Studio and this app');
+      if (isDevelopment) {
+        console.error('❌ Failed to connect to LM Studio');
+        console.error('📝 Error message:', error.message);
+        console.error('🔍 Full error:', error);
+        
+        // Provide helpful error messages
+        if (error.message?.includes('No models are loaded')) {
+          console.error('');
+          console.error('💡 SOLUTION:');
+          console.error('   1. Open LM Studio');
+          console.error('   2. Go to "My Models" tab');
+          console.error('   3. Click "Load" on any model');
+          console.error('   4. Or use CLI: lms load <model-name>');
+        } else if (error.message?.includes('ECONNREFUSED') || error.message?.includes('Failed to fetch') || error.message?.includes('NetworkError')) {
+          console.error('');
+          console.error('💡 SOLUTION:');
+          console.error('   1. Make sure LM Studio is running');
+          console.error('   2. In LM Studio, go to Developer tab');
+          console.error('   3. Enable "Local Server"');
+          console.error('   4. Check it\'s running on port 1234');
+          console.error('   5. Restart your dev server (npm run dev)');
+        } else {
+          console.error('');
+          console.error('💡 TROUBLESHOOTING:');
+          console.error('   • Is LM Studio running?');
+          console.error('   • Is a model loaded?');
+          console.error('   • Is the local server enabled?');
+          console.error('   • Try restarting both LM Studio and this app');
+        }
       }
       
       this.isConnected = false;
@@ -137,8 +164,8 @@ Current device mode: ${this.currentMode.toUpperCase()}`;
 
       // Generate response using LLM
       const prediction = this.model.respond(this.conversationHistory, {
-        maxTokens: 150, // Keep responses concise for retro feel
-        temperature: 0.7,
+        maxTokens: MAX_LLM_TOKENS, // Keep responses concise for retro feel
+        temperature: LLM_TEMPERATURE,
         stopStrings: ['\n\n\n'], // Stop at multiple newlines
       });
 
@@ -150,27 +177,53 @@ Current device mode: ${this.currentMode.toUpperCase()}`;
           responseContent += fragment.content;
         }
       } catch (streamError) {
-        console.error('Stream error during response generation:', streamError);
+        if (isDevelopment) {
+          console.error('Stream error during response generation:', streamError);
+        }
         return this.getFallbackResponse(userMessage);
       }
 
-      // Add assistant response to history
+      // Apply token filtering before returning
+      let cleanedResponse;
+      try {
+        cleanedResponse = cleanLLMResponse(responseContent.trim());
+        
+        if (isDevelopment) {
+          // Log if tokens were removed (response changed after cleaning)
+          if (cleanedResponse !== responseContent.trim()) {
+            console.log('🧹 Special tokens removed from LLM response');
+            console.log('   Original length:', responseContent.trim().length);
+            console.log('   Cleaned length:', cleanedResponse.length);
+          }
+        }
+      } catch (error) {
+        // Graceful degradation: if filtering fails, return original response
+        if (isDevelopment) {
+          console.error('⚠️ Error cleaning LLM response:', error);
+          console.error('   Returning unfiltered response');
+        }
+        cleanedResponse = responseContent.trim();
+      }
+
+      // Add assistant response to history (use cleaned version)
       this.conversationHistory.push({
         role: 'assistant',
-        content: responseContent
+        content: cleanedResponse
       });
 
-      // Keep conversation history manageable (last 10 messages)
-      if (this.conversationHistory.length > 21) { // 1 system + 20 messages
+      // Keep conversation history manageable
+      if (this.conversationHistory.length > MAX_CONVERSATION_HISTORY + 1) { // 1 system + MAX_CONVERSATION_HISTORY messages
         this.conversationHistory = [
           this.conversationHistory[0], // Keep system prompt
-          ...this.conversationHistory.slice(-20)
+          ...this.conversationHistory.slice(-MAX_CONVERSATION_HISTORY)
         ];
       }
 
-      return responseContent.trim();
+      return cleanedResponse;
     } catch (error) {
-      console.error('Error generating LLM response:', error);
+      if (isDevelopment) {
+        console.error('Error generating LLM response:', error);
+      }
       return this.getFallbackResponse(userMessage);
     }
   }
@@ -189,13 +242,26 @@ Current device mode: ${this.currentMode.toUpperCase()}`;
       'WEATHER': `[SYSTEM] WEATHER:\nTEMP: ${Math.floor(Math.random() * 20) + 60}°F\nHUMIDITY: ${Math.floor(Math.random() * 40) + 40}%\nCONDITION: CLEAR`,
     };
 
-    for (const [key, response] of Object.entries(fallbackResponses)) {
+    let response = '[SYSTEM] MESSAGE RECEIVED. LM STUDIO OFFLINE - USING FALLBACK MODE.';
+    
+    for (const [key, fallbackResponse] of Object.entries(fallbackResponses)) {
       if (messageUpper.includes(key)) {
-        return response;
+        response = fallbackResponse;
+        break;
       }
     }
 
-    return '[SYSTEM] MESSAGE RECEIVED. LM STUDIO OFFLINE - USING FALLBACK MODE.';
+    // Apply token filtering to fallback responses for consistency
+    try {
+      return cleanLLMResponse(response);
+    } catch (error) {
+      // Graceful degradation: if filtering fails, return original response
+      if (isDevelopment) {
+        console.error('⚠️ Error cleaning fallback response:', error);
+        console.error('   Returning unfiltered response');
+      }
+      return response;
+    }
   }
 
   /**
@@ -219,15 +285,23 @@ Current device mode: ${this.currentMode.toUpperCase()}`;
     try {
       const testClient = new LMStudioClient();
       const models = await testClient.llm.listLoaded();
-      console.log('✓ LM Studio is reachable');
-      console.log('Loaded models:', models.length);
+      
+      if (isDevelopment) {
+        console.log('✓ LM Studio is reachable');
+        console.log('Loaded models:', models.length);
+      }
+      
       if (models.length === 0) {
-        console.warn('⚠ No models are currently loaded in LM Studio');
+        if (isDevelopment) {
+          console.warn('⚠ No models are currently loaded in LM Studio');
+        }
         return false;
       }
       return true;
     } catch (error) {
-      console.error('✗ Cannot reach LM Studio:', error.message);
+      if (isDevelopment) {
+        console.error('✗ Cannot reach LM Studio:', error.message);
+      }
       return false;
     }
   }
@@ -241,7 +315,9 @@ Current device mode: ${this.currentMode.toUpperCase()}`;
         // Optionally unload the model if needed
         // await this.model.unload();
       } catch (error) {
-        console.error('Error disconnecting:', error);
+        if (isDevelopment) {
+          console.error('Error disconnecting:', error);
+        }
       }
     }
     this.client = null;

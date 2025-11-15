@@ -4,11 +4,7 @@
   "description": "Triggers on save for test files (src/**/*.test.{js,jsx}), automatically running Jest tests, updating coverage reports, identifying untested code paths, and suggesting additional test cases.",
   "version": "1",
   "when": {
-    "type": "fileEdited",
-    "patterns": [
-      "src/**/*.test.js",
-      "src/**/*.test.jsx"
-    ]
+    "type": "userTriggered"
   },
   "then": {
     "type": "askAgent",

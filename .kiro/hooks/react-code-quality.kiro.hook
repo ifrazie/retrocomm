@@ -4,14 +4,7 @@
   "description": "Monitors JavaScript and React source files for changes and provides automated code quality analysis including ESLint checks, React anti-patterns detection, performance optimization suggestions.",
   "version": "1",
   "when": {
-    "type": "fileEdited",
-    "patterns": [
-      "src/**/*.js",
-      "src/**/*.jsx",
-      "src/**/*.ts",
-      "src/**/*.tsx",
-      "server/**/*.js"
-    ]
+    "type": "userTriggered"
   },
   "then": {
     "type": "askAgent",

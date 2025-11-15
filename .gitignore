@@ -30,6 +30,11 @@ dist-ssr
 *.lcov
 .nyc_output
 
+# Test reports (generated documentation)
+TEST_ANALYSIS_REPORT.md
+TEST_COVERAGE_REPORT.md
+TEST_SUMMARY.md
+
 # Editor directories and files
 .vscode/*
 !.vscode/extensions.json

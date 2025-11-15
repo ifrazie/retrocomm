@@ -1,4 +1,4 @@
-import React, { createContext, useContext, useState, useEffect } from 'react';
+import React, { createContext, useContext, useState, useEffect, useMemo } from 'react';
 import { 
   getWebhookSettings, 
   saveWebhookSettings, 
@@ -132,7 +132,9 @@ export const ConfigProvider = ({ children }) => {
     savePreferences(defaultPreferences);
   };
 
-  const value = {
+  // Memoize context value to prevent unnecessary re-renders of consumers
+  // Only recalculate when webhooks, preferences, or isLoaded actually change
+  const value = useMemo(() => ({
     webhooks,
     preferences,
     isLoaded,
@@ -146,7 +148,21 @@ export const ConfigProvider = ({ children }) => {
     setAuthToken,
     toggleAuth,
     resetConfig
-  };
+  }), [
+    webhooks,
+    preferences,
+    isLoaded,
+    setWebhooks,
+    setPreferences,
+    setMode,
+    toggleSound,
+    setLayoutVariant,
+    setIncomingUrl,
+    setOutgoingUrl,
+    setAuthToken,
+    toggleAuth,
+    resetConfig
+  ]);
 
   return (
     <ConfigContext.Provider value={value}>

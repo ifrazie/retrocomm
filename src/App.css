@@ -214,6 +214,22 @@
     padding-bottom: 5px;
 }
 
+.fax-message-content {
+    margin-top: 15px;
+    margin-bottom: 15px;
+}
+
+.fax-status {
+    font-size: 10px;
+    color: #666;
+}
+
+.fax-empty-state {
+    text-align: center;
+    padding: 40px;
+    color: #999;
+}
+
 /* INPUT AREA */
 .input-area {
     margin-top: 20px;

@@ -3,8 +3,15 @@ import { useMessages } from '../contexts/MessageContext.jsx';
 import { useConfig } from '../contexts/ConfigContext.jsx';
 import { renderFaxWithAnimation } from '../utils/faxRenderer.js';
 import { retryFetch } from '../utils/retry.js';
+import { logger } from '../utils/logger.js';
 import Toast from './Toast.jsx';
 import './FaxInterface.css';
+import {
+    MAX_FAX_ARCHIVE,
+    FAX_ANIMATION_DURATION_MS,
+    DEFAULT_RETRY_ATTEMPTS,
+    DEFAULT_RETRY_BASE_DELAY
+} from '../utils/constants.js';
 
 /**
  * FaxThumbnail Component
@@ -51,10 +58,41 @@ const FaxInterface = () => {
   const [isTransmitting, setIsTransmitting] = useState(false);
   const [isSending, setIsSending] = useState(false);
   const [toast, setToast] = useState(null);
+  
+  // Track blob URLs for cleanup to prevent memory leaks
+  const blobUrlsRef = useRef(new Set());
   const [pendingMessage, setPendingMessage] = useState(null);
   const [renderingError, setRenderingError] = useState(false);
   const canvasRef = useRef(null);
   const previousMessageCount = useRef(messages.length);
+
+  // Cleanup blob URLs on unmount to prevent memory leaks
+  useEffect(() => {
+    return () => {
+      // Revoke all blob URLs when component unmounts
+      blobUrlsRef.current.forEach(url => {
+        URL.revokeObjectURL(url);
+      });
+      blobUrlsRef.current.clear();
+    };
+  }, []);
+
+  // Cleanup blob URLs when archive is trimmed
+  useEffect(() => {
+    if (faxArchive.length > MAX_FAX_ARCHIVE) {
+      // Get the faxes that will be removed
+      const removedCount = faxArchive.length - MAX_FAX_ARCHIVE;
+      const removedFaxes = faxArchive.slice(0, removedCount);
+      
+      // Revoke blob URLs for removed faxes
+      removedFaxes.forEach(fax => {
+        if (fax.imageDataUrl?.startsWith('blob:')) {
+          URL.revokeObjectURL(fax.imageDataUrl);
+          blobUrlsRef.current.delete(fax.imageDataUrl);
+        }
+      });
+    }
+  }, [faxArchive]);
 
   // Process new messages and render as fax documents
   useEffect(() => {
@@ -95,8 +133,13 @@ const FaxInterface = () => {
         (progress) => {
           // Animation progress callback (optional use for UI feedback)
         },
-        2500 // 2.5 seconds animation
+        FAX_ANIMATION_DURATION_MS
       );
+
+      // Track blob URLs for cleanup (data: URLs don't need cleanup)
+      if (dataUrl.startsWith('blob:')) {
+        blobUrlsRef.current.add(dataUrl);
+      }
 
       // Create fax document object
       const faxDoc = {
@@ -107,10 +150,10 @@ const FaxInterface = () => {
         content: message.content
       };
 
-      // Add to archive (limit to 100)
+      // Add to archive (limit to MAX_FAX_ARCHIVE)
       setFaxArchive(prev => {
         const updated = [...prev, faxDoc];
-        return updated.slice(-100);
+        return updated.slice(-MAX_FAX_ARCHIVE);
       });
 
       setIsTransmitting(false);
@@ -120,7 +163,7 @@ const FaxInterface = () => {
         setRenderingError(false);
       }
     } catch (error) {
-      console.error('Error rendering fax:', error);
+      logger.error('Error rendering fax:', error);
       setIsTransmitting(false);
       
       // Set rendering error state
@@ -142,10 +185,10 @@ const FaxInterface = () => {
         isFallback: true
       };
 
-      // Add to archive (limit to 100)
+      // Add to archive (limit to MAX_FAX_ARCHIVE)
       setFaxArchive(prev => {
         const updated = [...prev, fallbackDoc];
-        return updated.slice(-100);
+        return updated.slice(-MAX_FAX_ARCHIVE);
       });
     }
   };
@@ -177,10 +220,10 @@ const FaxInterface = () => {
       webhooks.outgoingUrl,
       fetchOptions,
       {
-        maxAttempts: 3,
-        baseDelay: 1000,
+        maxAttempts: DEFAULT_RETRY_ATTEMPTS,
+        baseDelay: DEFAULT_RETRY_BASE_DELAY,
         onRetry: (attempt, delay, error) => {
-          console.log(`Retry attempt ${attempt} after ${delay}ms due to:`, error.message);
+          logger.info(`Retry attempt ${attempt} after ${delay}ms due to:`, error.message);
         }
       }
     );
@@ -195,7 +238,7 @@ const FaxInterface = () => {
     
     // Check if outgoing webhook is configured
     if (!webhooks.outgoingUrl) {
-      console.error('Outgoing webhook URL not configured');
+      logger.error('Outgoing webhook URL not configured');
       setToast({
         message: 'Please configure outgoing webhook URL in settings',
         type: 'warning'
@@ -221,7 +264,7 @@ const FaxInterface = () => {
         type: 'success'
       });
     } catch (error) {
-      console.error('Error sending fax:', error);
+      logger.error('Error sending fax:', error);
       setIsSending(false);
       
       // Show error toast with retry button
@@ -254,7 +297,7 @@ const FaxInterface = () => {
         type: 'success'
       });
     } catch (error) {
-      console.error('Retry failed:', error);
+      logger.error('Retry failed:', error);
       setIsSending(false);
       
       // Show error toast again with retry button

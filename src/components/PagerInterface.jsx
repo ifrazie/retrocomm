@@ -3,17 +3,24 @@ import { useMessages } from '../contexts/MessageContext.jsx';
 import { useConfig } from '../contexts/ConfigContext.jsx';
 import { playBeep } from '../utils/beep.js';
 import { retryFetch } from '../utils/retry.js';
+import { logger } from '../utils/logger.js';
 import Toast from './Toast.jsx';
 import './PagerInterface.css';
+import {
+    MAX_DISPLAY_MESSAGES,
+    MAX_PAGER_MESSAGE_LENGTH,
+    DEFAULT_RETRY_ATTEMPTS,
+    DEFAULT_RETRY_BASE_DELAY
+} from '../utils/constants.js';
 
 /**
  * MessageItem Component
  * Memoized individual message display for better performance
  */
 const MessageItem = React.memo(({ message }) => {
-  // Truncate message content to 240 characters
-  const truncatedContent = message.content.length > 240
-    ? message.content.substring(0, 240) + '...'
+  // Truncate message content to MAX_PAGER_MESSAGE_LENGTH characters
+  const truncatedContent = message.content.length > MAX_PAGER_MESSAGE_LENGTH
+    ? message.content.substring(0, MAX_PAGER_MESSAGE_LENGTH) + '...'
     : message.content;
 
   return (
@@ -85,10 +92,10 @@ const PagerInterface = () => {
       webhooks.outgoingUrl,
       fetchOptions,
       {
-        maxAttempts: 3,
-        baseDelay: 1000,
+        maxAttempts: DEFAULT_RETRY_ATTEMPTS,
+        baseDelay: DEFAULT_RETRY_BASE_DELAY,
         onRetry: (attempt, delay, error) => {
-          console.log(`Retry attempt ${attempt} after ${delay}ms due to:`, error.message);
+          logger.info(`Retry attempt ${attempt} after ${delay}ms due to:`, error.message);
         }
       }
     );
@@ -103,7 +110,7 @@ const PagerInterface = () => {
     
     // Check if outgoing webhook is configured
     if (!webhooks.outgoingUrl) {
-      console.error('Outgoing webhook URL not configured');
+      logger.error('Outgoing webhook URL not configured');
       setToast({
         message: 'Please configure outgoing webhook URL in settings',
         type: 'warning'
@@ -129,7 +136,7 @@ const PagerInterface = () => {
         type: 'success'
       });
     } catch (error) {
-      console.error('Error sending message:', error);
+      logger.error('Error sending message:', error);
       setIsSending(false);
       
       // Show error toast with retry button
@@ -162,7 +169,7 @@ const PagerInterface = () => {
         type: 'success'
       });
     } catch (error) {
-      console.error('Retry failed:', error);
+      logger.error('Retry failed:', error);
       setIsSending(false);
       
       // Show error toast again with retry button
@@ -194,7 +201,7 @@ const PagerInterface = () => {
 
       <div className="PagerInterface__display">
         <div className="PagerInterface__messages">
-          {messages.slice(-50).map((message) => (
+          {messages.slice(-MAX_DISPLAY_MESSAGES).map((message) => (
             <MessageItem key={message.id} message={message} />
           ))}
           <div ref={messagesEndRef} />
@@ -208,7 +215,7 @@ const PagerInterface = () => {
           value={inputValue}
           onChange={_handleInputChange}
           placeholder="Type message..."
-          maxLength={240}
+          maxLength={MAX_PAGER_MESSAGE_LENGTH}
           disabled={isSending}
         />
         <button 
