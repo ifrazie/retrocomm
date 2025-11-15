@@ -4,6 +4,10 @@ import { useLLMChatbot } from './hooks/useLLMChatbot';
 import { generateMessageId } from './utils/generateId';
 import { logger } from './utils/logger';
 import Toast from './components/Toast';
+import LoginScreen from './components/LoginScreen';
+import UserSelector from './components/UserSelector';
+import { authService } from './services/AuthService';
+import { messagingService } from './services/MessagingService';
 import './styles/toast.css';
 import {
     MAX_PAGER_MESSAGES,
@@ -26,9 +30,20 @@ const EXAMPLE_MESSAGES = [
 ];
 
 function App() {
+    // Authentication state
+    const [isAuthenticated, setIsAuthenticated] = useState(false);
+    const [currentUser, setCurrentUser] = useState(null);
+    const [isLoggingIn, setIsLoggingIn] = useState(false);
+
+    // Recipient selection state
+    const [selectedRecipient, setSelectedRecipient] = useState('ChatBot');
+    const [availableUsers, setAvailableUsers] = useState([]);
+    const [showUserSelector, setShowUserSelector] = useState(false);
+
+    // Existing state
     const [mode, setMode] = useState('pager');
     const { isConnected: llmConnected, isInitializing: llmInitializing, isGenerating: llmGenerating, generateResponse } = useLLMChatbot(mode);
-    const [messages, setMessages] = useState(EXAMPLE_MESSAGES);
+    const [messages, setMessages] = useState([]);
     const [inputMessage, setInputMessage] = useState('');
     const [webhookStatus, setWebhookStatus] = useState('connected');
     const [isTyping, setIsTyping] = useState(false);
@@ -50,6 +65,123 @@ function App() {
 
     const hideToast = useCallback(() => {
         setToast(null);
+    }, []);
+
+    // Check for existing session on mount
+    useEffect(() => {
+        const checkSession = async () => {
+            if (authService.isAuthenticated()) {
+                try {
+                    const userData = await authService.verifySession();
+                    if (userData) {
+                        setCurrentUser(userData);
+                        setIsAuthenticated(true);
+                        
+                        // Connect to messaging service
+                        messagingService.connect();
+                        
+                        showToast(`Welcome back, ${userData.username}!`, 'success');
+                    }
+                } catch (error) {
+                    logger.error('Session verification failed:', error);
+                    authService.clearSession();
+                }
+            }
+        };
+
+        checkSession();
+    }, [showToast]);
+
+    // Listen for incoming messages
+    useEffect(() => {
+        if (!isAuthenticated) return;
+
+        const unsubscribe = messagingService.onMessage((message) => {
+            const newMessage = {
+                id: message.messageId,
+                sender: message.from,
+                content: message.content,
+                timestamp: new Date(message.timestamp).toLocaleTimeString('en-US', {
+                    hour: '2-digit',
+                    minute: '2-digit'
+                }),
+                type: 'received',
+                status: message.status
+            };
+
+            setMessages(prev => [...prev, newMessage]);
+            setHasNewMessage(true);
+            showToast(`New message from ${message.from}`, 'info', 2000);
+        });
+
+        return () => unsubscribe();
+    }, [isAuthenticated, showToast]);
+
+    // Handle login
+    const handleLogin = useCallback(async (username) => {
+        setIsLoggingIn(true);
+        
+        try {
+            const result = await authService.login(username);
+            
+            setCurrentUser({
+                userId: result.userId,
+                username: result.username,
+                sessionId: result.sessionId
+            });
+            setIsAuthenticated(true);
+            
+            // Connect to messaging service
+            messagingService.connect();
+            
+            // Load available users
+            loadAvailableUsers();
+            
+            showToast(
+                result.isNewUser 
+                    ? `Welcome to Retro Messenger, ${result.username}!` 
+                    : `Welcome back, ${result.username}!`,
+                'success'
+            );
+        } catch (error) {
+            logger.error('Login failed:', error);
+            showToast(error.message || 'Login failed. Please try again.', 'error');
+            throw error;
+        } finally {
+            setIsLoggingIn(false);
+        }
+    }, [showToast]);
+
+    // Handle logout
+    const handleLogout = useCallback(async () => {
+        try {
+            await authService.logout();
+            messagingService.disconnect();
+            
+            setIsAuthenticated(false);
+            setCurrentUser(null);
+            setMessages([]);
+            setSelectedRecipient('ChatBot');
+            setAvailableUsers([]);
+            
+            showToast('Logged out successfully', 'success');
+        } catch (error) {
+            logger.error('Logout failed:', error);
+        }
+    }, [showToast]);
+
+    // Load available users
+    const loadAvailableUsers = useCallback(async () => {
+        try {
+            const users = await authService.getUsers();
+            // Add ChatBot as a special recipient
+            setAvailableUsers([
+                { username: 'ChatBot', online: true, lastSeen: null },
+                ...users
+            ]);
+        } catch (error) {
+            logger.error('Failed to load users:', error);
+        }
     }, []);
 
     const scrollToBottom = useCallback(() => {
@@ -93,37 +225,74 @@ function App() {
         }
     }, [showSettings]);
 
-    const handleSendMessage = useCallback(() => {
-        if (!inputMessage.trim()) return;
+    const handleSendMessage = useCallback(async () => {
+        if (!inputMessage.trim()) {
+            showToast('Please enter a message', 'error');
+            return;
+        }
 
-        const newMessage = {
-            id: generateMessageId(),
+        if (!selectedRecipient) {
+            showToast('Please select a recipient', 'error');
+            return;
+        }
+
+        const messageContent = inputMessage;
+        const tempId = generateMessageId();
+        
+        // Add optimistic message to UI
+        const optimisticMessage = {
+            id: tempId,
             sender: 'You',
-            content: inputMessage,
+            recipient: selectedRecipient,
+            content: messageContent,
             timestamp: new Date().toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit' }),
             type: 'sent',
             status: 'sending'
         };
 
-        // React 18 automatically batches these state updates in event handlers
-        // This prevents multiple re-renders and improves performance
-        setMessages(prev => [...prev, newMessage]);
+        setMessages(prev => [...prev, optimisticMessage]);
         setInputMessage('');
         setWebhookStatus('sending');
-        setHasNewMessage(true);
 
-        // Simulate webhook delivery
-        const messageToSend = inputMessage;
-        setTimeout(() => {
-            setMessages(prev => prev.map((msg, idx) => 
-                idx === prev.length - 1 ? { ...msg, status: 'delivered' } : msg
-            ));
-            setWebhookStatus('connected');
-
-            // Trigger chatbot response
-            handleChatbotResponse(messageToSend);
-        }, WEBHOOK_DELAY_MS);
-    }, [inputMessage]);
+        // Check if sending to ChatBot (for LLM responses)
+        if (selectedRecipient === 'ChatBot') {
+            // Trigger chatbot response (LLM or fallback)
+            setTimeout(() => {
+                setMessages(prev => prev.map(msg => 
+                    msg.id === tempId ? { ...msg, status: 'delivered' } : msg
+                ));
+                setWebhookStatus('connected');
+                handleChatbotResponse(messageContent);
+            }, WEBHOOK_DELAY_MS);
+        } else {
+            // Send to real user via backend
+            try {
+                const result = await messagingService.sendMessage(selectedRecipient, messageContent);
+                
+                // Update message with real ID and status
+                setMessages(prev => prev.map(msg => 
+                    msg.id === tempId ? { 
+                        ...msg, 
+                        id: result.messageId,
+                        status: result.status,
+                        timestamp: new Date(result.timestamp).toLocaleTimeString('en-US', {
+                            hour: '2-digit',
+                            minute: '2-digit'
+                        })
+                    } : msg
+                ));
+                setWebhookStatus('connected');
+                showToast(`Message sent to ${selectedRecipient}!`, 'success', 2000);
+            } catch (error) {
+                logger.error('Failed to send message:', error);
+                setMessages(prev => prev.map(msg => 
+                    msg.id === tempId ? { ...msg, status: 'failed' } : msg
+                ));
+                setWebhookStatus('connected');
+                showToast(error.message || 'Failed to send message', 'error');
+            }
+        }
+    }, [inputMessage, selectedRecipient, showToast]);
 
     const handleChatbotResponse = useCallback(async (userMessage) => {
         setIsTyping(true);
@@ -190,6 +359,19 @@ function App() {
     const handleMarkAsRead = useCallback(() => setHasNewMessage(false), []);
     const handleScrollToTop = useCallback(() => window.scrollTo(0, 0), []);
     const handleScrollToBottom = useCallback(() => window.scrollTo(0, document.body.scrollHeight), []);
+    
+    // User selector handlers
+    const handleOpenUserSelector = useCallback(() => {
+        loadAvailableUsers(); // Refresh user list
+        setShowUserSelector(true);
+    }, [loadAvailableUsers]);
+    
+    const handleCloseUserSelector = useCallback(() => setShowUserSelector(false), []);
+    
+    const handleSelectRecipient = useCallback((username) => {
+        setSelectedRecipient(username);
+        showToast(`Recipient set to: ${username}`, 'success', 2000);
+    }, [showToast]);
 
     // Memoize input handlers
     const handleInputChange = useCallback((e) => setInputMessage(e.target.value), []);
@@ -226,6 +408,7 @@ function App() {
                                 <div>
                                     {msg.type === 'bot' && <span className="bot-prefix">[BOT] </span>}
                                     MSG #{messageNumberingInfo.startIndex + idx + 1} FROM: {msg.sender}
+                                    {msg.type === 'sent' && msg.recipient && ` TO: ${msg.recipient}`}
                                 </div>
                                 <div>TIME: {msg.timestamp}</div>
                                 <div>TEXT: {msg.content}</div>
@@ -256,15 +439,27 @@ function App() {
                 <button className="pager-btn" onClick={handleScrollToBottom} aria-label="Scroll to bottom">▼ DOWN</button>
                 <button className="pager-btn" onClick={handleClearMessages} aria-label="Clear all messages">✕ CLEAR</button>
                 <button className="pager-btn" onClick={handleOpenSettings} aria-label="Open settings menu">⚙ MENU</button>
-                <button className="pager-btn" onClick={handleMarkAsRead} aria-label="Mark messages as read">✓ READ</button>
+                <button className="pager-btn" onClick={handleOpenUserSelector} aria-label="Select recipient">👤 TO</button>
             </div>
 
             <div className="input-area">
+                <div className="recipient-display" style={{
+                    padding: '8px 15px',
+                    background: '#0a0a0a',
+                    border: '2px solid #00ff41',
+                    marginBottom: '10px',
+                    fontFamily: "'Courier New', monospace",
+                    color: '#00ff41',
+                    fontSize: '0.9rem',
+                    letterSpacing: '1px'
+                }}>
+                    TO: {selectedRecipient || 'SELECT RECIPIENT'} {selectedRecipient === 'ChatBot' && '🤖'}
+                </div>
                 <div className="input-container">
                     <input
                         type="text"
                         className="message-input"
-                        placeholder="Type message..."
+                        placeholder={`Message to ${selectedRecipient || 'recipient'}...`}
                         value={inputMessage}
                         onChange={handleInputChange}
                         onKeyPress={handleKeyPress}
@@ -283,7 +478,7 @@ function App() {
                     ) : (
                         <>
                             <div className="webhook-indicator"></div>
-                            <span>WEBHOOK: CONNECTED | LLM: {llmInitializing ? 'INIT...' : llmConnected ? 'ONLINE' : 'OFFLINE'}</span>
+                            <span>USER: {currentUser?.username || 'GUEST'} | LLM: {llmInitializing ? 'INIT...' : llmConnected ? 'ONLINE' : 'OFFLINE'}</span>
                         </>
                     )}
                 </div>
@@ -318,6 +513,12 @@ function App() {
                                 </div>
                                 <div className="fax-header-line">
                                     FROM: {msg.sender.toUpperCase()}
+                                    {msg.type === 'sent' && msg.recipient && (
+                                        <>
+                                            <br />
+                                            TO: {msg.recipient.toUpperCase()}
+                                        </>
+                                    )}
                                     <br />
                                     DATE: {new Date().toLocaleDateString()} {msg.timestamp}
                                     <br />
@@ -353,11 +554,23 @@ function App() {
             </div>
 
             <div className="input-area">
+                <div className="recipient-display" style={{
+                    padding: '8px 15px',
+                    background: '#0a0a0a',
+                    border: '2px solid #00ff41',
+                    marginBottom: '10px',
+                    fontFamily: "'Courier New', monospace",
+                    color: '#00ff41',
+                    fontSize: '0.9rem',
+                    letterSpacing: '1px'
+                }}>
+                    TO: {selectedRecipient || 'SELECT RECIPIENT'} {selectedRecipient === 'ChatBot' && '🤖'}
+                </div>
                 <div className="input-container">
                     <input
                         type="text"
                         className="message-input"
-                        placeholder="Type message to send..."
+                        placeholder={`Message to ${selectedRecipient || 'recipient'}...`}
                         value={inputMessage}
                         onChange={handleInputChange}
                         onKeyPress={handleKeyPress}
@@ -375,7 +588,7 @@ function App() {
                     ) : (
                         <>
                             <div className="webhook-indicator"></div>
-                            <span>LINE READY | LLM: {llmInitializing ? 'INIT...' : llmConnected ? 'ONLINE' : 'OFFLINE'}</span>
+                            <span>USER: {currentUser?.username || 'GUEST'} | LLM: {llmInitializing ? 'INIT...' : llmConnected ? 'ONLINE' : 'OFFLINE'}</span>
                         </>
                     )}
                 </div>
@@ -385,7 +598,7 @@ function App() {
                 <button className="pager-btn" onClick={handleModeChangeToPager} aria-label="Switch to pager mode">📟 PAGER</button>
                 <button className="pager-btn" onClick={handleClearMessages} aria-label="Clear all messages">🗑 CLEAR</button>
                 <button className="pager-btn" onClick={handleOpenSettings} aria-label="Open settings menu">⚙ MENU</button>
-                <button className="pager-btn" onClick={handleMarkAsRead} aria-label="Mark messages as read">✓ READ</button>
+                <button className="pager-btn" onClick={handleOpenUserSelector} aria-label="Select recipient">👤 TO</button>
             </div>
 
             <div className="device-label">
@@ -394,12 +607,17 @@ function App() {
         </div>
     );
 
+    // Show login screen if not authenticated
+    if (!isAuthenticated) {
+        return <LoginScreen onLogin={handleLogin} />;
+    }
+
     return (
         <div className="app-container">
             <div className="header">
                 <h1>⚡ RETRO MESSENGER ⚡</h1>
                 <div className="subtitle">
-                    Modern Messaging Reimagined with 1980s Tech
+                    Modern Messaging Reimagined with 1980s Tech - Multiuser Edition
                 </div>
             </div>
 
@@ -458,6 +676,23 @@ function App() {
                         </div>
 
                         <form className="settings-form" onSubmit={handleSaveWebhookConfig}>
+                            <div className="settings-section">
+                                <h3>👤 User Status</h3>
+                                <div className="llm-status-display">
+                                    <div className="llm-status-indicator connected">
+                                        ✓ Logged in as: {currentUser?.username || 'Guest'}
+                                    </div>
+                                    <button
+                                        type="button"
+                                        className="settings-save-btn"
+                                        onClick={handleLogout}
+                                        style={{ marginTop: '10px' }}
+                                    >
+                                        Logout
+                                    </button>
+                                </div>
+                            </div>
+
                             <div className="settings-section">
                                 <h3>🤖 LLM Status</h3>
                                 <div className="llm-status-display">
@@ -559,6 +794,15 @@ function App() {
                         </form>
                     </div>
                 </div>
+            )}
+
+            {showUserSelector && (
+                <UserSelector
+                    users={availableUsers}
+                    currentRecipient={selectedRecipient}
+                    onSelectUser={handleSelectRecipient}
+                    onClose={handleCloseUserSelector}
+                />
             )}
         </div>
     );
