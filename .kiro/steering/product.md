@@ -1,33 +1,27 @@
 # Product Overview
 
-**Retro Messenger** is a nostalgic web application that reimagines modern messaging through the aesthetic lens of 1980s-90s communication devices (pagers and fax machines).
+**Retro Messenger** is a nostalgic web application that reimagines modern messaging through the lens of 1980s-90s technology. It combines vintage aesthetics (pagers and fax machines) with contemporary features like AI-powered chatbots and webhook integrations.
 
-## Core Concept
+## Core Features
 
-Transform contemporary messaging into an immersive retro experience while maintaining full modern functionality including:
-- AI-powered chatbot responses via LM Studio integration
-- Webhook simulation for event-driven architecture
-- Dual interface modes (Pager and Fax)
-- Real-time message delivery with authentic retro animations
+- **Dual Interface Modes**: Switch between authentic pager (green LCD) and fax machine (thermal printer) interfaces
+- **Multi-user Messaging**: Real-time messaging between users with username-based authentication
+- **AI Chatbot Integration**: LM Studio integration for intelligent, context-aware conversations with automatic fallback
+- **Webhook Support**: Configurable outgoing webhooks and unique incoming webhook URLs for external integrations
+- **Retro Aesthetics**: Authentic 1980s-90s device styling with CRT effects, dot-matrix fonts, and period-appropriate animations
 
 ## Target Use Cases
 
-- **Demonstration**: Showcase how modern tech (webhooks, AI chatbots) can be wrapped in nostalgic interfaces
-- **Hackathon Submission**: Built for Kiroween Hackathon 2025 (AWS Kiro)
-- **Educational**: Illustrate event-driven architecture and LLM integration patterns
-- **Entertainment**: Provide engaging, personality-driven messaging experience
+- Demonstration of webhook and chatbot integration patterns
+- Nostalgic messaging experience for retro technology enthusiasts
+- Educational showcase of modern tech wrapped in vintage UI/UX
+- Kiroween Hackathon 2025 submission (Webhooks & Chatbots theme)
 
-## Key Features
+## Key User Flows
 
-1. **Pager Mode**: Classic LCD-style display with green monochrome aesthetic, physical button interface
-2. **Fax Mode**: Thermal fax machine interface with dot-matrix printer styling and paper feed animations
-3. **LLM Integration**: Real AI responses using locally-run language models via LM Studio
-4. **Webhook Simulation**: Visual transmission indicators and delivery status tracking
-5. **Retro Aesthetics**: Authentic 1980s-90s device recreation with period-appropriate animations
-
-## Design Philosophy
-
-- **Nostalgia First**: Every interaction should feel authentic to vintage devices
-- **Modern Underneath**: Contemporary tech stack with cutting-edge AI integration
-- **Immersive Experience**: Full-width interfaces without distracting sidebars
-- **Graceful Degradation**: Works with or without LM Studio connection
+1. **Login**: Username-based authentication (no password required for demo)
+2. **Select Recipient**: Choose from online users or ChatBot
+3. **Send Message**: Type and send messages via pager keypad or fax interface
+4. **Receive Messages**: Real-time message delivery with visual/audio indicators
+5. **AI Interaction**: Natural language conversations with LM Studio-powered chatbot
+6. **Configure Webhooks**: Set up external integrations via settings panel

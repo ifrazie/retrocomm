@@ -1,173 +1,124 @@
 # Project Structure
 
-## Root Directory Layout
+## Root Directory
 
 ```
 retro-messenger/
 ├── src/                    # Frontend React application
-├── server/                 # Optional Express backend for webhooks
-├── examples/               # Working code examples and demos
-├── docs/                   # Documentation files
+├── server/                 # Backend Express server
 ├── public/                 # Static assets
-├── dist/                   # Production build output (generated)
-├── node_modules/           # Dependencies (generated)
+├── examples/               # Example code and demos
+├── dist/                   # Production build output
 ├── .kiro/                  # Kiro configuration and steering
 ├── .snapshots/             # Project snapshots
-└── [config files]          # Root-level configuration
+└── node_modules/           # Dependencies
 ```
 
 ## Frontend Structure (`src/`)
 
-### Core Application Files
-- `main.jsx` - Application entry point, renders root component
-- `App.jsx` - Main application component with mode switching and message handling
-- `App.css` - Main application styles
-- `App.test.jsx` - Application-level tests
-- `index.css` - Global base styles (imported in main.jsx)
-- `vite-env.d.ts` - Vite environment type definitions
-
-### Directory Organization
-
-#### `src/components/`
-React components with co-located CSS files (component-name.css pattern):
-- **Interface Components**: `PagerInterface.jsx`, `FaxInterface.jsx` - Main device UI
-- **Layout Components**: `LayoutContainer.jsx`, `LayoutToggle.jsx` - Layout management
-- **Control Components**: `ControlSidebar.jsx`, `ModeToggle.jsx` - User controls
-- **Configuration**: `WebhookConfig.jsx` - Webhook settings panel
-- **UI Elements**: `StatusIndicator.jsx`, `Toast.jsx`, `SkeletonLoader.jsx` - Reusable UI
-- **Pattern**: Each component has matching `.css` file and optional `.test.jsx`
-
-#### `src/hooks/`
-Custom React hooks for shared logic:
-- `useLLMChatbot.js` - LLM integration and response generation
-- `useConnectionStatus.js` - Connection monitoring
-- `useSSE.js` - Server-Sent Events handling
-
-#### `src/services/`
-Business logic and external integrations:
-- `LLMChatbotService.js` - Singleton service for LM Studio integration
-- `LLMChatbotService.test.js` - Service tests
-- **Pattern**: Services are singletons with test files
-
-#### `src/contexts/`
-React Context providers for global state:
-- `MessageContext.jsx` - Message state management
-- `ConfigContext.jsx` - Configuration state management
-
-#### `src/utils/`
-Pure utility functions with tests:
-- `sanitize.js` - Input sanitization (DOMPurify wrapper)
-- `validation.js` - Input validation helpers
-- `storage.js` - LocalStorage wrapper
-- `retry.js` - Retry logic for network requests
-- `beep.js` - Audio feedback utilities
-- `faxRenderer.js` - Fax display rendering logic
-- `layoutConfig.js` - Layout configuration helpers
-- **Pattern**: Each utility has matching `.test.js` file
-
-#### `src/styles/`
-Global stylesheets:
-- `global.css` - Global CSS variables, resets, and base styles
-
-#### `src/types/`
-Type definitions (TypeScript/JSDoc):
-- `index.js` - JavaScript type definitions
-- `index.ts` - TypeScript type definitions
-
-#### `src/test/`
-Test configuration and setup:
-- `setup.js` - Vitest test environment setup
-
-#### `src/assets/`
-Static assets (images, icons):
-- `react.svg` - React logo
+```
+src/
+├── components/             # React components
+│   ├── Toast.jsx          # Toast notification component
+│   ├── LoginScreen.jsx    # User authentication UI
+│   └── UserSelector.jsx   # Recipient selection UI
+├── contexts/              # React context providers
+├── hooks/                 # Custom React hooks
+│   └── useLLMChatbot.js  # LLM chatbot integration hook
+├── services/              # Business logic and API clients
+│   ├── LLMChatbotService.js    # LM Studio integration
+│   ├── AuthService.js          # Authentication service
+│   └── MessagingService.js     # Real-time messaging via SSE
+├── styles/                # CSS modules and stylesheets
+│   └── toast.css         # Toast notification styles
+├── test/                  # Test utilities and setup
+│   └── setup.js          # Vitest configuration
+├── types/                 # TypeScript type definitions
+├── utils/                 # Utility functions
+│   ├── constants.js      # Application constants
+│   ├── generateId.js     # Unique ID generation
+│   └── logger.js         # Logging utility
+├── App.jsx               # Main application component
+├── App.css               # Main application styles
+├── main.jsx              # React entry point
+└── index.css             # Global styles
+```
 
 ## Backend Structure (`server/`)
 
-Optional Express server for webhook functionality.
-
-### Core Server File
-- `index.js` - Express app setup and server initialization
-
-### Directory Organization
-
-#### `server/routes/`
-Express route handlers:
-- `webhook.js` - Incoming webhook endpoint
-- `messages.js` - Message API endpoints
-- `send.js` - Outgoing message sending
-
-#### `server/middleware/`
-Express middleware:
-- `auth.js` - Authentication middleware (Bearer token)
-- `validator.js` - Request validation middleware
-
-#### `server/utils/`
-Server-side utilities:
-- `retry.js` - Retry logic for outgoing webhooks
-
-#### `server/test/`
-Backend tests:
-- `webhook.test.js` - Webhook endpoint tests
-- `messages.test.js` - Message API tests
-- `middleware.test.js` - Middleware tests
-- `integration.test.js` - End-to-end integration tests
-
-## Examples Directory (`examples/`)
-
-Working code samples demonstrating features:
-- `llm-chatbot-example.js` - LLM integration example
-
-## Documentation (`docs/`)
-
-Technical documentation:
-- `LLM_INTEGRATION.md` - LLM integration guide
-
-## Configuration Files (Root)
-
-- `package.json` - Dependencies and scripts
-- `vite.config.ts` - Vite build configuration with proxy setup
-- `tsconfig.json` - TypeScript configuration for src/
-- `tsconfig.node.json` - TypeScript configuration for build tools
-- `eslint.config.js` - ESLint configuration with TypeScript support
-- `.gitignore` - Git ignore patterns
-
-## Naming Conventions
-
-### Files
-- **React Components**: PascalCase (e.g., `PagerInterface.jsx`)
-- **Hooks**: camelCase with `use` prefix (e.g., `useLLMChatbot.js`)
-- **Services**: PascalCase with `Service` suffix (e.g., `LLMChatbotService.js`)
-- **Utilities**: camelCase (e.g., `sanitize.js`, `validation.js`)
-- **Tests**: Same name as source with `.test.js` suffix
-- **Styles**: Same name as component with `.css` suffix
-
-### Code
-- **Components**: PascalCase function names
-- **Hooks**: camelCase with `use` prefix
-- **Constants**: UPPER_SNAKE_CASE (e.g., `EXAMPLE_MESSAGES`)
-- **Variables/Functions**: camelCase
-
-## Import Patterns
-
-```javascript
-// External dependencies first
-import React, { useState, useEffect } from 'react';
-import { LMStudioClient } from '@lmstudio/sdk';
-
-// Internal imports - absolute from src/
-import { useLLMChatbot } from './hooks/useLLMChatbot';
-import { llmChatbot } from './services/LLMChatbotService';
-
-// Styles last
-import './App.css';
 ```
+server/
+├── routes/               # Express route handlers
+│   ├── auth.js          # Authentication endpoints
+│   ├── messages.js      # Message retrieval endpoints
+│   ├── send.js          # Message sending endpoints
+│   └── webhook.js       # Webhook endpoints
+├── services/            # Backend services
+│   ├── UserService.js   # User management
+│   └── WebSocketService.js  # SSE connection management
+├── middleware/          # Express middleware
+├── utils/               # Backend utilities
+└── index.js            # Server entry point
+```
+
+## Configuration Files
+
+- **vite.config.ts**: Vite build configuration with proxy setup
+- **tsconfig.json**: TypeScript compiler options
+- **tsconfig.node.json**: TypeScript config for Node.js files
+- **eslint.config.js**: ESLint configuration with TypeScript support
+- **package.json**: Dependencies and npm scripts
 
 ## Key Architectural Patterns
 
-1. **Component Co-location**: Each component has its CSS file in the same directory
-2. **Singleton Services**: Services like `LLMChatbotService` use singleton pattern
-3. **Custom Hooks**: Shared logic extracted into reusable hooks
-4. **Context for Global State**: React Context for app-wide state (messages, config)
-5. **Pure Utilities**: Utility functions are pure and testable
-6. **Test Co-location**: Test files live next to source files
+### Component Organization
+- **Presentational components**: In `src/components/` (UI-focused)
+- **Container component**: `App.jsx` (state management and business logic)
+- **Custom hooks**: In `src/hooks/` (reusable stateful logic)
+- **Services**: In `src/services/` (API clients and external integrations)
+
+### State Management
+- React hooks (useState, useEffect, useRef, useCallback, useMemo)
+- No external state management library (Redux, Zustand, etc.)
+- Local component state with prop drilling
+- Service singletons for shared state (AuthService, MessagingService)
+
+### Styling Approach
+- CSS files co-located with components
+- Global styles in `src/index.css` and `src/App.css`
+- CSS custom properties for theming
+- No CSS-in-JS or CSS modules (plain CSS)
+
+### Testing Structure
+- Test files co-located with source files (e.g., `App.test.jsx`)
+- Test categories: unit, integration, accessibility, error handling
+- Test setup in `src/test/setup.js`
+- Vitest with jsdom/happy-dom for DOM simulation
+
+### Backend Architecture
+- RESTful API endpoints under `/api`
+- Server-Sent Events (SSE) for real-time messaging
+- In-memory data storage (no database)
+- Service layer pattern for business logic
+
+## File Naming Conventions
+
+- **React components**: PascalCase with `.jsx` extension (e.g., `LoginScreen.jsx`)
+- **Services**: PascalCase with `.js` extension (e.g., `AuthService.js`)
+- **Utilities**: camelCase with `.js` extension (e.g., `generateId.js`)
+- **Styles**: kebab-case or component name with `.css` extension
+- **Tests**: Same name as source file with `.test.jsx` suffix
+
+## Import Patterns
+
+- Relative imports for local files: `import { logger } from './utils/logger'`
+- Named exports preferred over default exports for utilities
+- Default exports for React components
+- Service singletons exported as instances: `export const authService = new AuthService()`
+
+## Constants and Configuration
+
+- Application constants in `src/utils/constants.js`
+- Environment-specific config in Vite config
+- No `.env` files (demo application)
+- Hardcoded URLs for development (localhost:3001, localhost:1234)

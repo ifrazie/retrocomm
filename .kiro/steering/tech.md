@@ -1,87 +1,81 @@
 # Technology Stack
 
-## Build System & Tooling
+## Frontend
 
-- **Build Tool**: Vite 6.0+ (fast development server with HMR)
-- **Package Manager**: npm
-- **Module System**: ES Modules (type: "module" in package.json)
-- **TypeScript**: Configured but optional (gradual migration approach)
+- **React 18.3.1**: UI framework with hooks (useState, useEffect, useRef, useCallback, useMemo)
+- **Vite 6.0.1**: Build tool and development server with HMR
+- **React Router DOM 6.28.0**: Client-side routing
+- **CSS3**: Custom styling with animations, Grid, Flexbox, and CSS custom properties
+- **TypeScript 5.0+**: Type checking support (configured but project uses JSX)
 
-## Frontend Stack
+## Backend
 
-- **Framework**: React 18.3+ with hooks (functional components only)
-- **Styling**: Pure CSS3 with CSS Grid, Flexbox, and custom properties
-- **Routing**: React Router DOM 6.28+ (if needed for multi-page features)
-- **State Management**: React hooks (useState, useEffect, useRef) - no external state library
+- **Node.js**: Runtime environment
+- **Express 4.21.1**: Web server framework
+- **CORS 2.8.5**: Cross-origin resource sharing
+- **Server-Sent Events (SSE)**: Real-time message delivery
 
-## AI & Integration
+## AI Integration
 
-- **LLM SDK**: @lmstudio/sdk ^1.5.0 for local AI model integration
-- **Chatbot Service**: Custom singleton service (`src/services/LLMChatbotService.js`)
-- **Proxy Configuration**: Vite dev proxy routes `/lmstudio` to `http://127.0.0.1:1234`
+- **@lmstudio/sdk 1.5.0**: LM Studio JavaScript SDK for local LLM integration
+- **LM Studio**: Local AI inference (optional, with automatic fallback)
 
-## Backend (Optional/Demo)
+## Development Tools
 
-- **Server**: Express 4.21+ (for webhook endpoints in `server/` directory)
-- **CORS**: cors ^2.8.5
-- **Note**: Backend is optional; frontend works standalone
-
-## Testing
-
-- **Test Runner**: Vitest 4.0+ with jsdom/happy-dom environment
-- **Testing Library**: @testing-library/react ^16.3.0
-- **Test Utils**: @testing-library/user-event, @testing-library/jest-dom
-- **Server Testing**: supertest ^7.1.4
+- **Vitest 4.0.8**: Testing framework with jsdom/happy-dom
+- **@testing-library/react 16.3.0**: React component testing
+- **@testing-library/jest-dom 6.9.1**: Custom Jest matchers
+- **ESLint**: Code linting with TypeScript support
+- **typescript-eslint**: TypeScript ESLint parser and rules
+- **Concurrently 9.2.1**: Run multiple commands simultaneously
 
 ## Utilities
 
-- **UUID Generation**: uuid ^11.0.3
-- **Sanitization**: dompurify ^3.2.2
-- **TypeScript Execution**: tsx ^4.20.6 (for running examples)
+- **uuid 11.0.3**: Unique ID generation
+- **dompurify 3.2.2**: XSS sanitization
+- **supertest 7.1.4**: HTTP assertion testing
 
 ## Common Commands
 
+### Development
 ```bash
-# Development
-npm run dev              # Start Vite dev server (http://localhost:5173)
+npm run dev              # Start Vite dev server (port 5173)
+npm run server           # Start Express backend (port 3001)
+npm run dev:full         # Run both frontend and backend concurrently
+```
 
-# Building
-npm run build            # TypeScript check + Vite build
+### Building
+```bash
+npm run build            # TypeScript check + Vite production build
 npm run preview          # Preview production build
+npm run type-check       # Run TypeScript type checking only
+```
 
-# Testing
+### Testing
+```bash
 npm test                 # Run tests once (CI mode)
 npm run test:watch       # Run tests in watch mode
 npm run test:ui          # Run tests with Vitest UI
+```
 
-# Type Checking
-npm run type-check       # Run TypeScript compiler without emitting files
-
-# Backend (Optional)
-npm run server           # Start Express server (http://localhost:3001)
-
-# Examples
+### Examples
+```bash
 npm run example:llm      # Run LLM chatbot example
 ```
 
 ## Development Proxy Configuration
 
-Vite proxy routes for local development:
-- `/api` → `http://localhost:3001` (Express backend)
+Vite dev server includes proxy configuration for:
+- `/api` → `http://localhost:3001` (backend API)
 - `/lmstudio` → `http://127.0.0.1:1234` (LM Studio local server)
 
-## Browser Compatibility
+The LM Studio proxy enables browser-based connections without CORS issues and supports WebSocket for streaming.
+
+## Browser Support
 
 - Chrome/Edge 90+
 - Firefox 88+
 - Safari 14+
 - Opera 76+
 
-Requires modern JavaScript (ES2020) and CSS3 support.
-
-## External Dependencies
-
-**Optional**: LM Studio desktop application for AI chatbot functionality
-- Download from https://lmstudio.ai
-- Compatible models: Qwen2.5-7B-Instruct, Llama, etc.
-- Default port: 1234
+Requires modern JavaScript (ES6+) support.
