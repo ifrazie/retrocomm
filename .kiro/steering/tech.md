@@ -1,39 +1,60 @@
 # Technology Stack
 
-## Frontend
+## Build System & Tooling
 
-- **React 18.3.1**: UI framework with hooks (useState, useEffect, useRef, useCallback, useMemo)
-- **Vite 6.0.1**: Build tool and development server with HMR
-- **React Router DOM 6.28.0**: Client-side routing
-- **CSS3**: Custom styling with animations, Grid, Flexbox, and CSS custom properties
-- **TypeScript 5.0+**: Type checking support (configured but project uses JSX)
+- **Build Tool**: Vite 6.0+ (fast development server with HMR)
+- **Package Manager**: npm
+- **Language**: JavaScript (ES6+) with TypeScript support configured
+- **Linting**: ESLint with TypeScript ESLint parser
+- **Testing**: Vitest with React Testing Library, jsdom/happy-dom
 
-## Backend
+## Frontend Stack
 
-- **Node.js**: Runtime environment
-- **Express 4.21.1**: Web server framework
-- **CORS 2.8.5**: Cross-origin resource sharing
-- **Server-Sent Events (SSE)**: Real-time message delivery
+### Core Framework
+- **React 18.3+** with Hooks (useState, useEffect, useRef, useCallback, useMemo)
+- **React Router DOM 6.28+** for routing
+- **React DOM 18.3+** for rendering
 
-## AI Integration
+### Styling
+- **Pure CSS3** with custom properties (CSS variables)
+- **CSS Grid & Flexbox** for layouts
+- **CSS Animations** for retro effects (scanning lines, typing indicators, LED alerts)
+- **Responsive Design** with mobile-first approach
 
-- **@lmstudio/sdk 1.5.0**: LM Studio JavaScript SDK for local LLM integration
-- **LM Studio**: Local AI inference (optional, with automatic fallback)
+### Key Libraries
+- **@lmstudio/sdk 1.5+** - LM Studio JavaScript SDK for AI chatbot integration
+- **DOMPurify 3.2+** - XSS protection for user-generated content
+- **uuid 11.0+** - Unique ID generation for messages
+
+## Backend Stack (Node.js/Express)
+
+### Server Framework
+- **Express 4.21+** - Web server framework
+- **CORS 2.8+** - Cross-origin resource sharing
+- **bcrypt 6.0+** - Password hashing (10 rounds)
+
+### Architecture
+- **RESTful API** endpoints for auth, messaging, webhooks
+- **Server-Sent Events (SSE)** for real-time message delivery
+- **In-memory storage** (no database - demo/hackathon project)
 
 ## Development Tools
 
-- **Vitest 4.0.8**: Testing framework with jsdom/happy-dom
-- **@testing-library/react 16.3.0**: React component testing
-- **@testing-library/jest-dom 6.9.1**: Custom Jest matchers
-- **ESLint**: Code linting with TypeScript support
-- **typescript-eslint**: TypeScript ESLint parser and rules
-- **Concurrently 9.2.1**: Run multiple commands simultaneously
+### TypeScript Configuration
+- Target: ES2020
+- Module: ESNext with bundler resolution
+- JSX: react-jsx
+- Strict mode enabled
+- Configured but not enforced (gradual migration path)
 
-## Utilities
-
-- **uuid 11.0.3**: Unique ID generation
-- **dompurify 3.2.2**: XSS sanitization
-- **supertest 7.1.4**: HTTP assertion testing
+### Testing Setup
+- **Vitest** with globals enabled
+- **jsdom** environment for DOM testing
+- **@testing-library/react** for component testing
+- **@testing-library/user-event** for interaction testing
+- **@testing-library/jest-dom** for custom matchers
+- **supertest** for API testing
+- **@vitest/coverage-v8** for coverage reports
 
 ## Common Commands
 
@@ -47,35 +68,76 @@ npm run dev:full         # Run both frontend and backend concurrently
 ### Building
 ```bash
 npm run build            # TypeScript check + Vite production build
-npm run preview          # Preview production build
+npm run preview          # Preview production build locally
 npm run type-check       # Run TypeScript type checking only
 ```
 
 ### Testing
 ```bash
-npm test                 # Run tests once (CI mode)
+npm test                 # Run all tests once (CI mode)
 npm run test:watch       # Run tests in watch mode
 npm run test:ui          # Run tests with Vitest UI
 ```
 
 ### Examples
 ```bash
-npm run example:llm      # Run LLM chatbot example
+npm run example:llm      # Run LLM chatbot example (requires LM Studio)
 ```
 
-## Development Proxy Configuration
+## Proxy Configuration
 
-Vite dev server includes proxy configuration for:
+Vite dev server includes proxies for:
 - `/api` → `http://localhost:3001` (backend API)
 - `/lmstudio` → `http://127.0.0.1:1234` (LM Studio local server)
 
-The LM Studio proxy enables browser-based connections without CORS issues and supports WebSocket for streaming.
+**Note**: Proxies only work in development mode. Production deployments need proper backend configuration.
 
-## Browser Support
+## External Dependencies
 
+### LM Studio (Optional)
+- Download from [lmstudio.ai](https://lmstudio.ai)
+- Required for AI chatbot functionality
+- Runs locally on port 1234 (default)
+- Any compatible LLM model (e.g., qwen2.5-7b-instruct)
+
+### Browser Requirements
 - Chrome/Edge 90+
 - Firefox 88+
 - Safari 14+
 - Opera 76+
+- Modern JavaScript (ES6+) support required
 
-Requires modern JavaScript (ES6+) support.
+## Security Libraries
+
+### Cryptography
+- **Web Crypto API** (built-in) - RSA-2048 key generation, AES-256-GCM encryption
+- **bcrypt** - Password hashing with salt rounds
+- **PBKDF2** (built-in) - Key derivation for private key encryption
+
+### Sanitization
+- **DOMPurify** - XSS prevention for user-generated content
+- Input validation throughout application
+
+## Performance Optimizations
+
+- React.memo for expensive components
+- useCallback/useMemo for function/value memoization
+- CSS-based animations (GPU accelerated)
+- Efficient state management with minimal re-renders
+- Message display limits (5 for pager, unlimited for fax)
+- Auto-scroll using refs instead of DOM queries
+
+## Development Workflow
+
+1. Install dependencies: `npm install`
+2. Start backend: `npm run server` (optional for multi-user features)
+3. Start frontend: `npm run dev`
+4. (Optional) Start LM Studio with a loaded model
+5. Open browser to `http://localhost:5173`
+6. Run tests: `npm test`
+
+## Known Issues
+
+- ESLint may require manual installation of `typescript-eslint` dependency
+- LM Studio proxy only works in development (Vite dev server)
+- Session storage cleared on page refresh (security feature for E2EE)

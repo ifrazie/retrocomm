@@ -1,27 +1,48 @@
 # Product Overview
 
-**Retro Messenger** is a nostalgic web application that reimagines modern messaging through the lens of 1980s-90s technology. It combines vintage aesthetics (pagers and fax machines) with contemporary features like AI-powered chatbots and webhook integrations.
+**Retro Messenger** is a nostalgic web application that reimagines modern messaging through the lens of 1980s-90s technology. It combines contemporary features like webhooks, AI chatbots, and end-to-end encryption with authentic retro aesthetics.
 
-## Core Features
+## Core Concept
 
-- **Dual Interface Modes**: Switch between authentic pager (green LCD) and fax machine (thermal printer) interfaces
-- **Multi-user Messaging**: Real-time messaging between users with username-based authentication
-- **AI Chatbot Integration**: LM Studio integration for intelligent, context-aware conversations with automatic fallback
-- **Webhook Support**: Configurable outgoing webhooks and unique incoming webhook URLs for external integrations
-- **Retro Aesthetics**: Authentic 1980s-90s device styling with CRT effects, dot-matrix fonts, and period-appropriate animations
+Transform everyday messaging into an immersive experience that feels like using a classic pager or fax machine, while maintaining full modern functionality including:
+- Real-time multi-user messaging
+- AI-powered chatbot responses (via LM Studio)
+- Webhook integration for external services
+- End-to-end encryption (RSA-2048 + AES-256-GCM)
+- Password-protected user accounts
 
-## Target Use Cases
+## Key Features
 
-- Demonstration of webhook and chatbot integration patterns
-- Nostalgic messaging experience for retro technology enthusiasts
-- Educational showcase of modern tech wrapped in vintage UI/UX
-- Kiroween Hackathon 2025 submission (Webhooks & Chatbots theme)
+### Dual Interface Modes
+- **Pager Mode**: Green-on-black LCD display with physical button controls, shows last 5 messages
+- **Fax Mode**: Thermal fax machine interface with dot-matrix styling and full message history
 
-## Key User Flows
+### Security & Authentication
+- Zero-knowledge architecture - server never sees decrypted messages
+- bcrypt password hashing with 10 rounds
+- RSA-2048 public key infrastructure for secure key exchange
+- AES-256-GCM encryption for message content
+- PBKDF2 key derivation (100k iterations) for private key protection
 
-1. **Login**: Username-based authentication (no password required for demo)
-2. **Select Recipient**: Choose from online users or ChatBot
-3. **Send Message**: Type and send messages via pager keypad or fax interface
-4. **Receive Messages**: Real-time message delivery with visual/audio indicators
-5. **AI Interaction**: Natural language conversations with LM Studio-powered chatbot
-6. **Configure Webhooks**: Set up external integrations via settings panel
+### AI Integration
+- LM Studio integration for intelligent, context-aware conversations
+- Automatic fallback to simulated responses when offline
+- Mode-specific AI personality (adapts to pager/fax context)
+- Maintains conversation history for multi-turn dialogues
+
+### Webhook System
+- Configurable outgoing webhook endpoints
+- Bearer token authentication support
+- Unique incoming webhook URLs per session
+- Visual transmission status indicators
+
+## Target Audience
+
+- Developers interested in retro-themed applications
+- Users nostalgic for vintage technology
+- Hackathon participants (Kiroween 2025 submission)
+- Anyone seeking a unique messaging experience
+
+## Design Philosophy
+
+Combine cutting-edge technology (E2EE, LLMs, webhooks) with nostalgic aesthetics to create engaging, memorable user experiences that spark joy while maintaining modern security and functionality standards.
