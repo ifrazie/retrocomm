@@ -2,7 +2,10 @@ import React, { useState } from 'react';
 import './LoginScreen.css';
 
 function LoginScreen({ onLogin }) {
+  const [mode, setMode] = useState('login'); // 'login' or 'register'
   const [username, setUsername] = useState('');
+  const [password, setPassword] = useState('');
+  const [confirmPassword, setConfirmPassword] = useState('');
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState('');
 
@@ -14,15 +17,39 @@ function LoginScreen({ onLogin }) {
       return;
     }
 
+    if (!password) {
+      setError('Password is required');
+      return;
+    }
+
+    if (mode === 'register') {
+      if (password.length < 6) {
+        setError('Password must be at least 6 characters');
+        return;
+      }
+
+      if (password !== confirmPassword) {
+        setError('Passwords do not match');
+        return;
+      }
+    }
+
     setIsLoading(true);
     setError('');
 
     try {
-      await onLogin(username.trim());
+      await onLogin(username.trim(), password, mode === 'register');
     } catch (err) {
-      setError(err.message || 'Login failed');
+      setError(err.message || `${mode === 'register' ? 'Registration' : 'Login'} failed`);
       setIsLoading(false);
     }
+  };
+
+  const toggleMode = () => {
+    setMode(mode === 'login' ? 'register' : 'login');
+    setError('');
+    setPassword('');
+    setConfirmPassword('');
   };
 
   return (
@@ -40,9 +67,9 @@ function LoginScreen({ onLogin }) {
             <div className="login-prompt">
               ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
               <br />
-              SYSTEM READY
+              {mode === 'register' ? 'NEW USER REGISTRATION' : 'SYSTEM READY'}
               <br />
-              ENTER USERNAME TO CONNECT
+              {mode === 'register' ? 'CREATE SECURE ACCOUNT' : 'ENTER CREDENTIALS TO CONNECT'}
               <br />
               ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
             </div>
@@ -65,6 +92,39 @@ function LoginScreen({ onLogin }) {
                 />
               </div>
 
+              <div className="login-input-group">
+                <label htmlFor="password" className="login-label">
+                  PASSWORD:
+                </label>
+                <input
+                  id="password"
+                  type="password"
+                  className="login-input"
+                  value={password}
+                  onChange={(e) => setPassword(e.target.value)}
+                  placeholder={mode === 'register' ? 'Min 6 characters...' : 'Enter password...'}
+                  disabled={isLoading}
+                  minLength={mode === 'register' ? 6 : undefined}
+                />
+              </div>
+
+              {mode === 'register' && (
+                <div className="login-input-group">
+                  <label htmlFor="confirmPassword" className="login-label">
+                    CONFIRM:
+                  </label>
+                  <input
+                    id="confirmPassword"
+                    type="password"
+                    className="login-input"
+                    value={confirmPassword}
+                    onChange={(e) => setConfirmPassword(e.target.value)}
+                    placeholder="Re-enter password..."
+                    disabled={isLoading}
+                  />
+                </div>
+              )}
+
               {error && (
                 <div className="login-error">
                   ✗ ERROR: {error}
@@ -74,19 +134,39 @@ function LoginScreen({ onLogin }) {
               <button
                 type="submit"
                 className="login-button"
-                disabled={isLoading || !username.trim()}
+                disabled={isLoading || !username.trim() || !password}
               >
-                {isLoading ? '⏳ CONNECTING...' : '→ CONNECT'}
+                {isLoading 
+                  ? '⏳ PROCESSING...' 
+                  : mode === 'register' 
+                    ? '→ REGISTER' 
+                    : '→ LOGIN'}
+              </button>
+
+              <button
+                type="button"
+                className="login-toggle-button"
+                onClick={toggleMode}
+                disabled={isLoading}
+              >
+                {mode === 'register' 
+                  ? '← Back to Login' 
+                  : '→ New User? Register'}
               </button>
             </form>
 
             <div className="login-info">
               <div className="login-info-line">
-                ℹ No password required for demo
+                🔒 End-to-end encrypted messaging
               </div>
               <div className="login-info-line">
-                ℹ Username will be visible to others
+                🔑 Password protects your private key
               </div>
+              {mode === 'register' && (
+                <div className="login-info-line">
+                  ⚠ Remember your password - cannot be reset
+                </div>
+              )}
             </div>
           </div>
 

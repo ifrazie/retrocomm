@@ -18,10 +18,11 @@ class MessageService {
    * Send a message from one user to another
    * @param {string} fromUserId - Sender user ID
    * @param {string} toUsername - Recipient username
-   * @param {string} content - Message content
+   * @param {string} content - Message content (may be encrypted)
+   * @param {boolean} encrypted - Whether the content is encrypted
    * @returns {Object} Created message
    */
-  sendMessage(fromUserId, toUsername, content) {
+  sendMessage(fromUserId, toUsername, content, encrypted = false) {
     const messageId = uuidv4();
     const timestamp = new Date().toISOString();
 
@@ -30,6 +31,7 @@ class MessageService {
       fromUserId,
       toUsername,
       content,
+      encrypted,
       timestamp,
       status: 'sent',
       deliveredAt: null,

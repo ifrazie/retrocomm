@@ -1,11 +1,14 @@
+import { cryptoService } from './CryptoService.js';
+
 /**
- * Authentication service for multiuser support
+ * Authentication service for multiuser support with E2EE
  */
 class AuthService {
   constructor() {
     this.baseUrl = '/api';
     this.sessionId = this.loadSession();
     this.username = this.loadUsername();
+    this.encryptedPrivateKey = this.loadEncryptedPrivateKey();
   }
 
   /**
@@ -23,13 +26,24 @@ class AuthService {
   }
 
   /**
+   * Load encrypted private key from localStorage
+   */
+  loadEncryptedPrivateKey() {
+    return localStorage.getItem('retro_encrypted_private_key');
+  }
+
+  /**
    * Save session to localStorage
    */
-  saveSession(sessionId, username) {
+  saveSession(sessionId, username, encryptedPrivateKey = null) {
     localStorage.setItem('retro_session_id', sessionId);
     localStorage.setItem('retro_username', username);
+    if (encryptedPrivateKey) {
+      localStorage.setItem('retro_encrypted_private_key', encryptedPrivateKey);
+    }
     this.sessionId = sessionId;
     this.username = username;
+    this.encryptedPrivateKey = encryptedPrivateKey;
   }
 
   /**
@@ -38,23 +52,69 @@ class AuthService {
   clearSession() {
     localStorage.removeItem('retro_session_id');
     localStorage.removeItem('retro_username');
+    localStorage.removeItem('retro_encrypted_private_key');
     this.sessionId = null;
     this.username = null;
+    this.encryptedPrivateKey = null;
+    cryptoService.clearKeys();
   }
 
   /**
-   * Login with username
+   * Register new user with password
    * @param {string} username - Username
+   * @param {string} password - Password
    * @returns {Promise<Object>} User data with sessionId
    */
-  async login(username) {
+  async register(username, password) {
+    try {
+      // Generate key pair
+      await cryptoService.generateKeyPair();
+      const publicKey = await cryptoService.exportPublicKey();
+
+      // Register user
+      const response = await fetch(`${this.baseUrl}/auth/register`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({ username, password, publicKey }),
+      });
+
+      if (!response.ok) {
+        const error = await response.json();
+        throw new Error(error.error || 'Registration failed');
+      }
+
+      const data = await response.json();
+
+      // Encrypt and store private key
+      const encryptedPrivateKey = await cryptoService.exportEncryptedPrivateKey(password);
+      this.saveSession(data.sessionId, data.username, encryptedPrivateKey);
+
+      // Store encrypted private key on server
+      await this.storeEncryptedPrivateKey(data.sessionId, encryptedPrivateKey);
+
+      return data;
+    } catch (error) {
+      console.error('Registration error:', error);
+      throw error;
+    }
+  }
+
+  /**
+   * Login with username and password
+   * @param {string} username - Username
+   * @param {string} password - Password
+   * @returns {Promise<Object>} User data with sessionId
+   */
+  async login(username, password) {
     try {
       const response = await fetch(`${this.baseUrl}/auth/login`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
         },
-        body: JSON.stringify({ username }),
+        body: JSON.stringify({ username, password }),
       });
 
       if (!response.ok) {
@@ -63,12 +123,47 @@ class AuthService {
       }
 
       const data = await response.json();
-      this.saveSession(data.sessionId, data.username);
+
+      // Decrypt private key
+      if (data.encryptedPrivateKey) {
+        try {
+          const privateKey = await cryptoService.importEncryptedPrivateKey(
+            data.encryptedPrivateKey,
+            password
+          );
+          const publicKey = await cryptoService.importPublicKey(data.publicKey);
+          cryptoService.setKeyPair({ publicKey, privateKey });
+        } catch (error) {
+          console.error('Failed to decrypt private key:', error);
+          throw new Error('Invalid password');
+        }
+      }
+
+      this.saveSession(data.sessionId, data.username, data.encryptedPrivateKey);
 
       return data;
     } catch (error) {
       console.error('Login error:', error);
       throw error;
+    }
+  }
+
+  /**
+   * Store encrypted private key on server
+   * @param {string} sessionId - Session ID
+   * @param {string} encryptedPrivateKey - Encrypted private key
+   */
+  async storeEncryptedPrivateKey(sessionId, encryptedPrivateKey) {
+    try {
+      await fetch(`${this.baseUrl}/auth/store-private-key`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({ sessionId, encryptedPrivateKey }),
+      });
+    } catch (error) {
+      console.error('Failed to store private key:', error);
     }
   }
 
@@ -112,6 +207,14 @@ class AuthService {
       }
 
       const data = await response.json();
+      
+      // Store public keys for E2EE
+      for (const user of data.users) {
+        if (user.publicKey) {
+          await cryptoService.storePublicKey(user.username, user.publicKey);
+        }
+      }
+      
       return data.users;
     } catch (error) {
       console.error('Get users error:', error);
@@ -139,11 +242,57 @@ class AuthService {
       }
 
       const data = await response.json();
+      
+      // Note: Private key is NOT restored here for security reasons
+      // User must re-login with password to decrypt messages
+      // This prevents unauthorized access if someone gets the session token
+      
       return data;
     } catch (error) {
       console.error('Session verification error:', error);
       this.clearSession();
       return null;
+    }
+  }
+
+  /**
+   * Restore private key from stored encrypted key using password
+   * @param {string} password - User's password
+   * @returns {Promise<boolean>} Success status
+   */
+  async restorePrivateKey(password) {
+    if (!this.encryptedPrivateKey) {
+      throw new Error('No encrypted private key stored');
+    }
+
+    try {
+      // Get user's public key from server
+      const response = await fetch(
+        `${this.baseUrl}/auth/session?sessionId=${this.sessionId}`
+      );
+      
+      if (!response.ok) {
+        throw new Error('Failed to get user data');
+      }
+      
+      const data = await response.json();
+      
+      // Decrypt and import private key
+      const privateKey = await cryptoService.importEncryptedPrivateKey(
+        this.encryptedPrivateKey,
+        password
+      );
+      
+      // Import public key
+      const publicKey = await cryptoService.importPublicKey(data.publicKey);
+      
+      // Set key pair in crypto service
+      cryptoService.setKeyPair({ publicKey, privateKey });
+      
+      return true;
+    } catch (error) {
+      console.error('Failed to restore private key:', error);
+      throw new Error('Invalid password or corrupted key');
     }
   }
 

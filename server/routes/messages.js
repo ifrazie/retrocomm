@@ -52,10 +52,10 @@ router.get('/messages/stream', (req, res) => {
 
 /**
  * POST /api/messages/send
- * Send a message to another user
+ * Send a message to another user (with E2EE support)
  */
 router.post('/messages/send', (req, res) => {
-  const { sessionId, toUsername, content } = req.body;
+  const { sessionId, toUsername, content, encrypted } = req.body;
 
   // Validate input
   if (!sessionId || !toUsername || !content) {
@@ -76,8 +76,8 @@ router.post('/messages/send', (req, res) => {
     return res.status(404).json({ error: 'Recipient not found' });
   }
 
-  // Create and send message
-  const message = messageService.sendMessage(sender.userId, toUsername, content);
+  // Create and send message (content is already encrypted if encrypted=true)
+  const message = messageService.sendMessage(sender.userId, toUsername, content, encrypted);
   
   // Deliver to recipient
   const deliveredMessage = messageService.deliverMessage(message.messageId, recipient.userId);
@@ -91,6 +91,7 @@ router.post('/messages/send', (req, res) => {
         from: sender.username,
         fromUserId: sender.userId,
         content: deliveredMessage.content,
+        encrypted: deliveredMessage.encrypted || false,
         timestamp: deliveredMessage.timestamp,
         status: deliveredMessage.status
       }

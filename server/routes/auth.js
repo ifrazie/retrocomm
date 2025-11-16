@@ -4,29 +4,94 @@ import { userService } from '../services/UserService.js';
 const router = express.Router();
 
 /**
- * POST /api/auth/login
- * Simple username-based authentication (no password for demo)
+ * POST /api/auth/register
+ * Register new user with password and public key
  */
-router.post('/auth/login', (req, res) => {
-  const { username } = req.body;
+router.post('/auth/register', async (req, res) => {
+  const { username, password, publicKey } = req.body;
 
   if (!username || username.trim().length === 0) {
     return res.status(400).json({ error: 'Username is required' });
   }
 
+  if (!password || password.length < 6) {
+    return res.status(400).json({ error: 'Password must be at least 6 characters' });
+  }
+
+  if (!publicKey) {
+    return res.status(400).json({ error: 'Public key is required' });
+  }
+
   try {
-    const result = userService.authenticateUser(username);
+    const result = await userService.registerUser(username, password, publicKey);
     
     res.json({
       success: true,
       userId: result.userId,
       username: result.username,
       sessionId: result.sessionId,
-      isNewUser: result.isNewUser
+      isNewUser: true
     });
   } catch (error) {
     res.status(400).json({ error: error.message });
   }
+});
+
+/**
+ * POST /api/auth/login
+ * Login with username and password
+ */
+router.post('/auth/login', async (req, res) => {
+  const { username, password } = req.body;
+
+  if (!username || username.trim().length === 0) {
+    return res.status(400).json({ error: 'Username is required' });
+  }
+
+  if (!password) {
+    return res.status(400).json({ error: 'Password is required' });
+  }
+
+  try {
+    const result = await userService.loginUser(username, password);
+    
+    res.json({
+      success: true,
+      userId: result.userId,
+      username: result.username,
+      sessionId: result.sessionId,
+      publicKey: result.publicKey,
+      encryptedPrivateKey: result.encryptedPrivateKey,
+      isNewUser: false
+    });
+  } catch (error) {
+    res.status(400).json({ error: error.message });
+  }
+});
+
+/**
+ * POST /api/auth/store-private-key
+ * Store user's encrypted private key
+ */
+router.post('/auth/store-private-key', (req, res) => {
+  const { sessionId, encryptedPrivateKey } = req.body;
+
+  if (!sessionId) {
+    return res.status(400).json({ error: 'sessionId is required' });
+  }
+
+  if (!encryptedPrivateKey) {
+    return res.status(400).json({ error: 'encryptedPrivateKey is required' });
+  }
+
+  const user = userService.getUserBySession(sessionId);
+  if (!user) {
+    return res.status(401).json({ error: 'Invalid session' });
+  }
+
+  userService.storeEncryptedPrivateKey(user.userId, encryptedPrivateKey);
+  
+  res.json({ success: true });
 });
 
 /**
@@ -67,7 +132,8 @@ router.get('/auth/users', (req, res) => {
     .map(u => ({
       username: u.username,
       online: u.online,
-      lastSeen: u.lastSeen
+      lastSeen: u.lastSeen,
+      publicKey: u.publicKey // Include public key for E2EE
     }));
 
   res.json({ users });

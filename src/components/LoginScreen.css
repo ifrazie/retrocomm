@@ -144,6 +144,31 @@
   cursor: not-allowed;
 }
 
+.login-toggle-button {
+  width: 100%;
+  padding: 12px;
+  margin-top: 10px;
+  background: transparent;
+  border: 2px solid #00ff41;
+  color: #00ff41;
+  font-family: 'Courier New', monospace;
+  font-size: 0.9rem;
+  letter-spacing: 1px;
+  cursor: pointer;
+  transition: all 0.3s ease;
+}
+
+.login-toggle-button:hover:not(:disabled) {
+  background: rgba(0, 255, 65, 0.1);
+  border-color: #ffff00;
+  color: #ffff00;
+}
+
+.login-toggle-button:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
 .login-info {
   border-top: 1px solid #00ff41;
   padding-top: 15px;

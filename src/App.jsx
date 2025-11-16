@@ -68,24 +68,14 @@ function App() {
     }, []);
 
     // Check for existing session on mount
+    // Note: For security, we require re-login after page refresh to decrypt messages
+    // This ensures the private key is only in memory during active sessions
     useEffect(() => {
         const checkSession = async () => {
             if (authService.isAuthenticated()) {
-                try {
-                    const userData = await authService.verifySession();
-                    if (userData) {
-                        setCurrentUser(userData);
-                        setIsAuthenticated(true);
-                        
-                        // Connect to messaging service
-                        messagingService.connect();
-                        
-                        showToast(`Welcome back, ${userData.username}!`, 'success');
-                    }
-                } catch (error) {
-                    logger.error('Session verification failed:', error);
-                    authService.clearSession();
-                }
+                // Clear session on page load - require fresh login for E2EE
+                authService.clearSession();
+                showToast('Please log in to access encrypted messages', 'info');
             }
         };
 
@@ -117,12 +107,31 @@ function App() {
         return () => unsubscribe();
     }, [isAuthenticated, showToast]);
 
-    // Handle login
-    const handleLogin = useCallback(async (username) => {
+    // Load available users
+    const loadAvailableUsers = useCallback(async () => {
+        try {
+            const users = await authService.getUsers();
+            // Add ChatBot as a special recipient
+            setAvailableUsers([
+                { username: 'ChatBot', online: true, lastSeen: null },
+                ...users
+            ]);
+        } catch (error) {
+            logger.error('Failed to load users:', error);
+        }
+    }, []);
+
+    // Handle login/registration
+    const handleLogin = useCallback(async (username, password, isRegistration = false) => {
         setIsLoggingIn(true);
         
         try {
-            const result = await authService.login(username);
+            let result;
+            if (isRegistration) {
+                result = await authService.register(username, password);
+            } else {
+                result = await authService.login(username, password);
+            }
             
             setCurrentUser({
                 userId: result.userId,
@@ -134,23 +143,23 @@ function App() {
             // Connect to messaging service
             messagingService.connect();
             
-            // Load available users
+            // Load available users (and their public keys)
             loadAvailableUsers();
             
             showToast(
-                result.isNewUser 
-                    ? `Welcome to Retro Messenger, ${result.username}!` 
-                    : `Welcome back, ${result.username}!`,
+                isRegistration 
+                    ? `Welcome to Retro Messenger, ${result.username}! 🔒 E2EE enabled.` 
+                    : `Welcome back, ${result.username}! 🔒 E2EE enabled.`,
                 'success'
             );
         } catch (error) {
-            logger.error('Login failed:', error);
-            showToast(error.message || 'Login failed. Please try again.', 'error');
+            logger.error('Authentication failed:', error);
+            showToast(error.message || 'Authentication failed. Please try again.', 'error');
             throw error;
         } finally {
             setIsLoggingIn(false);
         }
-    }, [showToast]);
+    }, [showToast, loadAvailableUsers]);
 
     // Handle logout
     const handleLogout = useCallback(async () => {
@@ -169,20 +178,6 @@ function App() {
             logger.error('Logout failed:', error);
         }
     }, [showToast]);
-
-    // Load available users
-    const loadAvailableUsers = useCallback(async () => {
-        try {
-            const users = await authService.getUsers();
-            // Add ChatBot as a special recipient
-            setAvailableUsers([
-                { username: 'ChatBot', online: true, lastSeen: null },
-                ...users
-            ]);
-        } catch (error) {
-            logger.error('Failed to load users:', error);
-        }
-    }, []);
 
     const scrollToBottom = useCallback(() => {
         messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });

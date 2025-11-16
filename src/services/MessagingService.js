@@ -1,7 +1,8 @@
 import { authService } from './AuthService.js';
+import { cryptoService } from './CryptoService.js';
 
 /**
- * Real-time messaging service using SSE
+ * Real-time messaging service using SSE with E2EE
  */
 class MessagingService {
   constructor() {
@@ -74,14 +75,39 @@ class MessagingService {
   /**
    * Handle incoming message
    */
-  handleMessage(data) {
+  async handleMessage(data) {
     if (data.type === 'connected') {
       console.log('Connected as:', data.username);
       return;
     }
 
     if (data.type === 'new_message') {
-      this.notifyMessageHandlers(data.message);
+      // Decrypt message if encrypted
+      let message = data.message;
+      if (message.encrypted && message.content) {
+        try {
+          const decryptedContent = await cryptoService.decryptMessage(message.content);
+          message = { ...message, content: decryptedContent, encrypted: false };
+        } catch (error) {
+          console.error('Failed to decrypt message:', error);
+          
+          // Provide helpful error message based on the error type
+          let errorMessage = '[🔒 ENCRYPTED MESSAGE]';
+          if (error.message.includes('No private key')) {
+            errorMessage = '[🔒 ENCRYPTED - Please re-login with password to decrypt]';
+          } else {
+            errorMessage = '[🔒 ENCRYPTED - Decryption failed]';
+          }
+          
+          message = { 
+            ...message, 
+            content: errorMessage,
+            encrypted: true,
+            decryptionFailed: true
+          };
+        }
+      }
+      this.notifyMessageHandlers(message);
     }
   }
 
@@ -141,15 +167,30 @@ class MessagingService {
    * Send a message to another user
    * @param {string} toUsername - Recipient username
    * @param {string} content - Message content
+   * @param {boolean} encrypt - Whether to encrypt the message (default: true for non-ChatBot)
    * @returns {Promise<Object>} Message result
    */
-  async sendMessage(toUsername, content) {
+  async sendMessage(toUsername, content, encrypt = true) {
     const sessionId = authService.getSessionId();
     if (!sessionId) {
       throw new Error('Not authenticated');
     }
 
     try {
+      let messageContent = content;
+      let isEncrypted = false;
+
+      // Encrypt message for real users (not ChatBot)
+      if (encrypt && toUsername !== 'ChatBot') {
+        try {
+          messageContent = await cryptoService.encryptMessage(content, toUsername);
+          isEncrypted = true;
+        } catch (error) {
+          console.error('Encryption failed, sending unencrypted:', error);
+          // Fall back to unencrypted if encryption fails
+        }
+      }
+
       const response = await fetch(`${this.baseUrl}/messages/send`, {
         method: 'POST',
         headers: {
@@ -158,7 +199,8 @@ class MessagingService {
         body: JSON.stringify({
           sessionId,
           toUsername,
-          content,
+          content: messageContent,
+          encrypted: isEncrypted,
         }),
       });
 

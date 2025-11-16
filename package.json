@@ -17,6 +17,7 @@
   },
   "dependencies": {
     "@lmstudio/sdk": "^1.5.0",
+    "bcrypt": "^6.0.0",
     "cors": "^2.8.5",
     "dompurify": "^3.2.2",
     "express": "^4.21.1",
@@ -38,6 +39,7 @@
     "jsdom": "^27.1.0",
     "supertest": "^7.1.4",
     "tsx": "^4.20.6",
+    "typescript": "^5.9.3",
     "vite": "^6.0.1",
     "vitest": "^4.0.8"
   }

@@ -4,6 +4,13 @@ A nostalgic web application that brings vintage communication devices (pagers an
 
 ## 🆕 What's New
 
+**🔒 Security Features** - Production-grade security with retro aesthetics:
+- **Password Authentication**: Secure user accounts with bcrypt-hashed passwords
+- **End-to-End Encryption**: Messages encrypted on your device, decrypted only by recipient
+- **Zero-Knowledge Architecture**: Server never sees your messages or private keys
+- **RSA-2048 + AES-256**: Industry-standard cryptography
+- See [SECURITY.md](SECURITY.md) for complete security documentation
+
 **LM Studio Integration** - The chatbot now supports real AI responses using locally-run language models:
 - Connect to LM Studio for intelligent, context-aware conversations
 - Automatic fallback to simulated responses when offline
@@ -47,6 +54,15 @@ A nostalgic web application that brings vintage communication devices (pagers an
 - **Concise Responses**: Optimized for retro display with 150-token limit
 - **Typing Indicators**: Retro animation during AI response generation
 - **Bot Messages**: Clearly labeled with [BOT] prefix in retro terminal style
+
+### 🔒 Security Features
+- **Password Authentication**: Secure login with bcrypt-hashed passwords (10 rounds)
+- **End-to-End Encryption**: RSA-2048 + AES-256-GCM encryption
+- **Private Key Protection**: Password-encrypted private keys (PBKDF2, 100k iterations)
+- **Zero-Knowledge Server**: Server cannot decrypt your messages
+- **Secure Key Exchange**: Public key infrastructure for safe communication
+- **Session Management**: Secure session IDs with automatic validation
+- **Registration/Login Flow**: Intuitive security without compromising retro aesthetic
 
 ### 🔗 Webhook Integration
 - **Configurable Webhook Endpoints**: Set custom outgoing webhook URLs for message delivery
