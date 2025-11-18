@@ -1,42 +1,97 @@
 # Retro Messenger 📟📠
 
-A nostalgic web application that brings vintage communication devices (pagers and fax machines) into the modern era. Experience the charm of retro technology with modern reliability through webhook-based messaging.
+A nostalgic web application that brings vintage communication devices (pagers and fax machines) into the modern era. Experience the charm of retro technology with **AI-powered chatbot integration** (via LM Studio) and simulated webhook functionality.
+
+## 🆕 What's New
+
+**🔒 Security Features** - Production-grade security with retro aesthetics:
+- **Password Authentication**: Secure user accounts with bcrypt-hashed passwords
+- **End-to-End Encryption**: Messages encrypted on your device, decrypted only by recipient
+- **Zero-Knowledge Architecture**: Server never sees your messages or private keys
+- **RSA-2048 + AES-256**: Industry-standard cryptography
+- See [SECURITY.md](SECURITY.md) for complete security documentation
+
+**LM Studio Integration** - The chatbot now supports real AI responses using locally-run language models:
+- Connect to LM Studio for intelligent, context-aware conversations
+- Automatic fallback to simulated responses when offline
+- Mode-specific AI personality (pager/fax context awareness)
+- Maintains conversation history for multi-turn dialogues
+- Optimized for retro display with concise responses
 
 ## Features
 
 ### 🟢 Pager Mode
-- Classic green-on-black monospace display
-- 240-character message limit per message
-- Audible beep notifications for new messages
-- Scrollable history of last 50 messages
-- CRT screen effects with scanlines and glow
+- Classic green-on-black monospace LCD display
+- Authentic pager interface with physical button controls
+- Displays last 5 messages with structured format:
+  - Message number (MSG #X FROM: sender)
+  - Timestamp (TIME: HH:MM)
+  - Message content (TEXT: content)
+  - Delivery status indicator
+- Message status indicators (SENDING, DELIVERED)
+- Alert LED for new unread messages
+- CRT screen effects with retro styling
 
 ### 📄 Fax Mode
-- Vintage fax document rendering with paper texture
-- Progressive line-by-line transmission animation
-- Scan lines, distortion, and noise effects
-- Archive of up to 100 received fax documents
-- Thumbnail gallery with full-size document viewer
+- Vintage thermal fax machine interface
+- Dot-matrix printer styling with paper texture
+- Progressive transmission animation with scanning line
+- Full message history displayed as fax documents with professional formatting:
+  - Header with sender information (FROM: sender)
+  - Date and timestamp (DATE: MM/DD/YYYY HH:MM)
+  - Page numbering (PAGE: X OF Y)
+  - Message type indicator for automated messages (TYPE: AUTOMATED)
+  - Separated message content with proper spacing
+  - Status footer (STATUS: DELIVERED/SENDING)
+- Authentic fax machine controls and indicators
+
+### 🤖 AI-Powered Chatbot (LM Studio Integration)
+- **Real LLM Integration**: Connect to LM Studio for intelligent AI responses
+- **Fallback Mode**: Automatic fallback to simulated responses when LM Studio is offline
+- **Context-Aware Conversations**: Maintains conversation history for coherent multi-turn dialogues
+- **Mode-Specific Prompts**: AI adapts responses based on pager/fax interface mode
+- **Command Recognition**: Supports HELP, STATUS, INFO, TIME, WEATHER commands
+- **Concise Responses**: Optimized for retro display with 150-token limit
+- **Typing Indicators**: Retro animation during AI response generation
+- **Bot Messages**: Clearly labeled with [BOT] prefix in retro terminal style
+
+### 🔒 Security Features
+- **Password Authentication**: Secure login with bcrypt-hashed passwords (10 rounds)
+- **End-to-End Encryption**: RSA-2048 + AES-256-GCM encryption
+- **Private Key Protection**: Password-encrypted private keys (PBKDF2, 100k iterations)
+- **Zero-Knowledge Server**: Server cannot decrypt your messages
+- **Secure Key Exchange**: Public key infrastructure for safe communication
+- **Session Management**: Secure session IDs with automatic validation
+- **Registration/Login Flow**: Intuitive security without compromising retro aesthetic
 
 ### 🔗 Webhook Integration
-- Receive messages via HTTP POST webhooks
-- Send messages to external webhook endpoints
-- Optional authentication with Bearer tokens
-- Real-time message delivery via Server-Sent Events (SSE)
-- Automatic retry with exponential backoff
+- **Configurable Webhook Endpoints**: Set custom outgoing webhook URLs for message delivery
+- **Authentication Support**: Optional Bearer token authentication for secure webhook calls
+- **Incoming Webhook URL**: Unique endpoint for receiving messages from external services
+- **Visual Status Indicators**: Real-time webhook transmission animations
+- **Animated Delivery Status**: "Sending" status during message delivery with confirmation
+- **Connection Monitoring**: Webhook status display (CONNECTED, TRANSMITTING)
+- **Settings Panel**: Easy-to-use configuration interface with copy-to-clipboard functionality
+- **AWS Kiro Integration**: Built-in support for AWS Kiro webhook patterns
 
 ### ⚙️ Additional Features
 - Seamless mode switching between pager and fax
 - Message history preserved across mode changes
-- Connection status indicators
-- Configurable webhook endpoints
+- Pre-loaded example messages for demonstration
 - Responsive design for mobile and desktop
-- XSS protection with content sanitization
+- Retro-themed header with nostalgic branding
+- Kiroween Hackathon 2025 themed footer
+- **Accessibility**: All interactive buttons include ARIA labels for screen reader support
 
 ## Prerequisites
 
 - Node.js 16+ and npm
-- Modern web browser with Canvas API support
+- Modern web browser (Chrome, Firefox, Safari, Edge)
+- TypeScript 5.0+ (for type checking and future TypeScript migration)
+- **LM Studio** (optional, for AI chatbot functionality)
+  - Download from [lmstudio.ai](https://lmstudio.ai)
+  - Any compatible LLM model loaded (e.g., Qwen2.5-7B-Instruct)
+  - Local server running on default port
 
 ## Installation
 
@@ -51,27 +106,41 @@ cd retro-messenger
 npm install
 ```
 
+This includes:
+- `@lmstudio/sdk` - LM Studio JavaScript SDK for AI chatbot integration
+- React, Vite, and other core dependencies
+
+**Note:** If you encounter ESLint errors, you may need to install the TypeScript ESLint dependency:
+```bash
+npm install --save-dev typescript-eslint
+```
+
+3. **(Optional) Set up LM Studio for AI chatbot:**
+```bash
+# Install LM Studio from https://lmstudio.ai
+# Download any compatible model (e.g., Qwen2.5-7B-Instruct)
+lms get qwen2.5-7b-instruct
+
+# Load the model
+lms load qwen2.5-7b-instruct
+
+# The application will automatically connect to the currently loaded model
+```
+
 ## Running the Application
 
 ### Development Mode
 
-1. Start the backend server:
-```bash
-npm run server
-```
-The server will run on `http://localhost:3001`
-
-2. In a separate terminal, start the frontend development server:
+Start the development server:
 ```bash
 npm run dev
 ```
-The frontend will run on `http://localhost:5173`
 
-3. Open your browser and navigate to `http://localhost:5173`
+The application will run on `http://localhost:5173`. Open your browser and navigate to this URL.
 
 ### Production Build
 
-1. Build the frontend:
+1. Build the application:
 ```bash
 npm run build
 ```
@@ -81,84 +150,154 @@ npm run build
 npm run preview
 ```
 
-## Configuration
+The application is a standalone frontend demo and does not require a backend server.
 
-### Webhook Setup
+## Usage
 
-1. Click the settings icon (⚙️) in the top-right corner
-2. Configure your webhook URLs:
-   - **Incoming Webhook URL**: The backend endpoint where you'll receive messages (displayed in settings)
-   - **Outgoing Webhook URL**: External endpoint where messages will be sent
-3. (Optional) Enable authentication and set a Bearer token
-4. Click "Save Configuration"
+### Configuring Webhooks
 
-### Webhook Endpoints
+1. Click the **⚙ Settings** button in the header or the **⚙ MENU** button in pager/fax controls
+2. Configure your webhook settings:
+   - **Outgoing Webhook URL**: Enter the endpoint where messages will be sent
+   - **Enable Authentication**: Toggle to require Bearer token authentication
+   - **Auth Token**: Enter your Bearer token (only if authentication is enabled)
+3. Copy your unique **Incoming Webhook URL** to receive messages from external services
+4. Click **Save Configuration** to apply changes
 
-#### Receive Messages (Incoming)
-```
-POST http://localhost:3001/api/webhook
-```
+**Note**: The incoming webhook URL is unique to your session and can be used to send messages to your Retro Messenger instance from external applications or services.
 
-**Request Headers:**
-```
-Content-Type: application/json
-Authorization: Bearer <your-token> (if auth enabled)
-```
+### Sending Messages
 
-**Request Body:**
-```json
-{
-  "message": "Your message text here",
-  "sender": "optional-sender-id",
-  "timestamp": 1234567890000,
-  "metadata": {
-    "platform": "slack",
-    "channelId": "C123456"
+1. Type your message in the input field at the bottom of the interface
+2. Press Enter or click the SEND (pager) / TRANSMIT (fax) button
+3. Watch the webhook transmission animation
+4. Your message appears with a "SENDING" status, then changes to "DELIVERED"
+5. After 2 seconds, the chatbot responds automatically
+6. If configured, messages are also sent to your outgoing webhook endpoint
+
+### AI Chatbot Integration
+
+The application features an intelligent chatbot powered by LM Studio:
+
+**LM Studio Mode (when connected):**
+- Real AI responses using locally-run language models
+- Context-aware conversations with memory of previous messages
+- Adapts personality based on interface mode (pager/fax)
+- Maintains retro aesthetic in responses
+- Supports natural language queries and commands
+
+**Fallback Mode (when LM Studio is offline):**
+- Automatic fallback to simulated responses
+- Command recognition for: HELP, STATUS, INFO, TIME, WEATHER
+- System status indicators show "LM STUDIO OFFLINE"
+
+**How to Enable LM Studio:**
+1. Install and run LM Studio (download from [lmstudio.ai](https://lmstudio.ai))
+2. Load any compatible model (e.g., `qwen2.5-7b-instruct`)
+3. Start the application - it will automatically connect to the currently loaded model
+4. Look for "✓ Connected to LM Studio" in browser console
+
+**Chatbot Commands:**
+Simply type naturally or use these commands:
+- **HELP** - Display available commands
+- **STATUS** - Show device and connection status
+- **INFO** - Display application information
+- **TIME** - Show current time
+- **WEATHER** - Display weather information
+
+The AI chatbot maintains conversation history (last 20 messages) for coherent multi-turn conversations.
+
+### Interface Controls
+
+**Pager Mode:**
+- ▲ UP - Scroll to top
+- 📠 FAX - Switch to fax mode
+- ▼ DOWN - Scroll to bottom
+- ✕ CLEAR - Clear all messages
+- ⚙ MENU - Open webhook settings panel
+- ✓ READ - Mark messages as read (clears alert LED)
+
+**Fax Mode:**
+- 📟 PAGER - Switch to pager mode
+- 🗑 CLEAR - Clear all messages
+- ⚙ MENU - Open webhook settings panel
+- ✓ READ - Mark messages as read
+
+### Example Messages
+
+The application comes pre-loaded with 10 example messages demonstrating:
+- Regular messages from users (Alice, Bob, Manager, etc.)
+- Chatbot responses with weather and reminders
+- System notifications
+- Various message types and timestamps
+
+## Development Tools
+
+### Proxy Configuration
+
+The application uses a Vite development proxy to enable browser connections to LM Studio:
+
+**Configuration** (`vite.config.ts`):
+```javascript
+server: {
+  proxy: {
+    '/lmstudio': {
+      target: 'http://127.0.0.1:1234',  // LM Studio default port
+      changeOrigin: true,
+      rewrite: (path) => path.replace(/^\/lmstudio/, ''),
+      ws: true,  // WebSocket support for streaming
+    }
   }
 }
 ```
 
-**Response:**
-```json
-{
-  "success": true,
-  "messageId": "uuid-v4-string"
-}
+This proxy:
+- Routes browser requests from `/lmstudio` to LM Studio's local server
+- Avoids CORS issues when connecting from the browser
+- Supports WebSocket connections for real-time streaming
+- Only active in development mode (`npm run dev`)
+
+### Examples
+
+The `examples/` directory contains working code samples:
+
+**LLM Chatbot Example** (`examples/llm-chatbot-example.js`):
+```bash
+node examples/llm-chatbot-example.js
 ```
 
-#### Send Messages (Outgoing)
-Configure your outgoing webhook URL in settings. Messages sent from the UI will be forwarded to this endpoint with the same format as above.
+Demonstrates:
+- Connecting to LM Studio
+- Generating responses in pager and fax modes
+- Handling offline fallback
+- Managing conversation history
+- Checking connection status
 
-### Example Webhook Payloads
+### Linting
 
-**Simple Message:**
-```json
-{
-  "message": "Hello from Retro Messenger!"
-}
+The project uses ESLint with TypeScript support for code quality:
+
+```bash
+# ESLint is configured to support both JavaScript and TypeScript files
+# Configuration includes React Hooks rules and React Refresh plugin
 ```
 
-**Message with Metadata:**
-```json
-{
-  "message": "Meeting in 5 minutes",
-  "sender": "alice@example.com",
-  "timestamp": 1699564800000,
-  "metadata": {
-    "priority": "high",
-    "category": "reminder"
-  }
-}
+**ESLint Configuration:**
+- TypeScript ESLint parser and rules
+- React Hooks recommended rules
+- React Refresh for Vite HMR
+- Custom rule: Unused variables starting with uppercase or underscore are allowed
+
+### Type Checking
+
+Run TypeScript type checking:
+```bash
+npm run type-check
 ```
 
-**Long Message (will be truncated in pager mode):**
-```json
-{
-  "message": "This is a very long message that exceeds the 240 character limit in pager mode. It will be automatically truncated with an ellipsis to maintain the authentic pager experience. However, in fax mode, the entire message will be rendered on the document."
-}
-```
+### Testing
 
-## Testing
+The project includes comprehensive test coverage with unit, integration, and accessibility tests.
 
 Run the test suite:
 ```bash
@@ -175,31 +314,225 @@ Run tests with UI:
 npm run test:ui
 ```
 
+**Test Coverage**:
+- **Unit Tests**: Individual component and utility function tests
+- **Integration Tests**: End-to-end message flow and user interaction tests
+- **Accessibility Tests**: ARIA label and keyboard navigation tests
+- **Error Handling Tests**: Chatbot error scenarios and edge cases
+
+**Integration Test Features** (`src/App.integration.test.jsx`):
+- Message creation with unique ID verification
+- React key warning detection (ensures no duplicate key errors)
+- Message rendering in both pager and fax modes
+- Mode switching with message persistence
+- Bot response generation with unique IDs
+- Multi-message flow testing
+
+## LM Studio Integration
+
+### Overview
+
+Retro Messenger integrates with **LM Studio** to provide real AI-powered chatbot responses using locally-run language models. This integration demonstrates how modern LLM technology can be wrapped in nostalgic retro interfaces.
+
+### Features
+
+- **Automatic Connection**: Connects to LM Studio on application startup
+- **Graceful Fallback**: Continues working with simulated responses if LM Studio is unavailable
+- **Context Awareness**: Maintains conversation history for coherent multi-turn dialogues
+- **Mode-Specific Behavior**: AI adapts responses based on pager/fax interface mode
+- **Optimized for Retro**: Responses limited to 150 tokens for concise, display-appropriate output
+- **Streaming Responses**: Real-time token streaming for responsive user experience
+
+### Quick Start Example
+
+Try the included example to see the LLM chatbot in action:
+
+```bash
+# Make sure LM Studio is running with a model loaded
+node examples/llm-chatbot-example.js
+```
+
+This example demonstrates:
+- Connecting to LM Studio
+- Generating AI responses in both pager and fax modes
+- Handling connection failures with graceful fallback
+- Managing conversation history
+- Checking connection status
+
+### Setup Instructions
+
+1. **Install LM Studio**:
+   ```bash
+   # Download from https://lmstudio.ai
+   # Available for Windows, macOS, and Linux
+   ```
+
+2. **Download a Compatible Model**:
+   ```bash
+   # Example: Qwen2.5-7B-Instruct (recommended)
+   lms get qwen2.5-7b-instruct
+   ```
+
+3. **Load the Model**:
+   ```bash
+   lms load qwen2.5-7b-instruct
+   ```
+
+4. **Start Retro Messenger**:
+   ```bash
+   npm run dev
+   ```
+
+5. **Verify Connection**:
+   - Open browser console (F12)
+   - Look for connection messages:
+     - `Attempting to connect to LM Studio...`
+     - `Requesting model from LM Studio...`
+     - `✓ Connected to LM Studio`
+     - `✓ Using model: [Model Name]`
+   - If connection fails, detailed error messages will guide you to the solution
+   - Send a message and receive AI-powered response
+
+### Technical Details
+
+**Service Architecture** (`src/services/LLMChatbotService.js`):
+- Singleton service managing LM Studio connection
+- **Browser-Compatible Proxy**: Uses `/lmstudio` proxy URL for browser compatibility
+- **Flexible Model Loading**: Uses currently loaded model in LM Studio (no hardcoded model requirement)
+- **Enhanced Error Diagnostics**: Detailed error messages with actionable troubleshooting steps
+- **Connection Logging**: Verbose logging shows connection status and model information
+- Automatic reconnection handling
+- Conversation history management (last 20 messages)
+- Mode-aware system prompts
+- Fallback response system
+
+**Configuration**:
+- **Max Tokens**: 150 (optimized for retro display)
+- **Temperature**: 0.7 (balanced creativity)
+- **Stop Strings**: Multiple newlines to prevent verbose output
+- **History Limit**: 20 messages + system prompt
+
+**System Prompts**:
+The AI receives context-specific instructions based on interface mode:
+- Pager mode: Responds as a 1990s pager device assistant
+- Fax mode: Responds as a 1980s fax machine assistant
+- Maintains retro aesthetic with occasional ALL CAPS emphasis
+- Supports command recognition (HELP, STATUS, INFO, TIME, WEATHER)
+
+### API Reference
+
+```javascript
+import { llmChatbot } from './services/LLMChatbotService';
+
+// Connect to LM Studio
+await llmChatbot.connect();
+
+// Set interface mode (affects system prompt)
+llmChatbot.setMode('pager'); // or 'fax'
+
+// Generate AI response
+const response = await llmChatbot.generateResponse('Hello!');
+
+// Check connection status
+const isConnected = llmChatbot.isLLMConnected();
+
+// Clear conversation history
+llmChatbot.clearHistory();
+
+// Disconnect
+await llmChatbot.disconnect();
+```
+
+**See the complete working example**: `examples/llm-chatbot-example.js`
+
+### Troubleshooting
+
+**Connection fails on startup**:
+- The application provides **detailed error diagnostics** with actionable solutions in the browser console
+- Check console for specific error messages and follow the provided solutions:
+  - `"No models are loaded"` → **Solution provided**: Step-by-step guide to load a model in LM Studio
+  - `"ECONNREFUSED"`, `"Failed to fetch"`, or `"NetworkError"` → **Solution provided**: 5-step checklist to enable LM Studio server
+  - Other errors → **Troubleshooting guide provided**: General checklist for common issues
+- **Enhanced connection logging**: Console shows detailed progress with emoji indicators:
+  - 🔌 Attempting to connect...
+  - 📍 Using base URL...
+  - 🔍 Checking for loaded models...
+  - 📊 Found X loaded model(s)
+  - 🎯 Requesting model...
+  - ✅ Connected successfully
+  - 🤖 Using model: [Model Name]
+- The app uses a proxy URL (`/lmstudio`) for browser compatibility
+- Check that no firewall is blocking local connections
+
+**Slow responses**:
+- Response time depends on the model size and your hardware
+- Larger models (7B+ parameters) may require significant resources
+- Ensure sufficient GPU/CPU resources available
+- Check LM Studio performance settings
+- Consider GPU offloading settings in LM Studio for better performance
+
+**Responses don't match retro aesthetic**:
+- The system prompt guides the AI's tone
+- Responses are automatically limited to 150 tokens
+- Mode switching updates the system prompt context
+
+**Fallback mode activating unexpectedly**:
+- Check browser console for connection errors
+- Verify LM Studio server is running
+- Try reloading the page to reconnect
+
 ## Architecture
 
 ### Frontend (React)
-- **React 18** with hooks for state management
+- **React 18** with hooks (useState, useEffect, useRef) for state management
 - **Vite** for fast development and optimized builds
-- **Context API** for global state (messages, configuration)
-- **Canvas API** for fax document rendering
-- **Server-Sent Events (SSE)** for real-time message delivery
+- **TypeScript** support configured for future migration
+- **ESLint** with TypeScript rules for code quality
+- **Vitest** with React Testing Library for comprehensive test coverage
+- **Standalone application** - No backend required
+- **CSS Grid** and Flexbox for responsive layouts
+- **CSS Custom Properties** for themeable, responsive design
+- **CSS Animations** for retro effects (scanning lines, typing indicators, LED alerts)
 
-### Backend (Node.js/Express)
-- **Express** web server
-- **CORS** enabled for cross-origin requests
-- **Authentication middleware** for optional token validation
-- **Validation middleware** for payload sanitization
-- **SSE** for broadcasting messages to connected clients
+### Key Features Implementation
 
-### Key Components
+**Message Management:**
+- Messages stored in component state with unique IDs
+- Pre-loaded with 10 example messages
+- Message types: 'sent', 'received', 'bot'
+- Status tracking: 'sending', 'delivered'
+- Unique ID generation for React key optimization (prevents duplicate key warnings)
 
-- `PagerInterface` - Retro pager display with green-on-black styling
-- `FaxInterface` - Vintage fax machine with document rendering
-- `WebhookConfig` - Settings panel for webhook configuration
-- `StatusIndicator` - Connection status display
-- `ModeToggle` - Switch between pager and fax modes
-- `MessageContext` - Global message queue management
-- `ConfigContext` - Application configuration and persistence
+**Webhook Configuration:**
+- Persistent webhook settings stored in component state
+- Configurable outgoing webhook URL for message delivery
+- Optional Bearer token authentication
+- Unique incoming webhook URL generation
+- Copy-to-clipboard functionality for easy sharing
+- Settings panel with toggle visibility
+
+**AI Chatbot Engine:**
+- **LM Studio Integration**: Real-time connection to local LLM via `@lmstudio/sdk`
+- **Intelligent Responses**: Context-aware AI responses using loaded language models
+- **Conversation Memory**: Maintains last 20 messages for coherent dialogues
+- **Mode-Aware Prompts**: System prompts adapt to pager/fax interface context
+- **Fallback System**: Automatic fallback to pattern-matching when LM Studio unavailable
+- **Response Optimization**: 150-token limit for concise, retro-appropriate responses
+- **Temperature Control**: Set to 0.7 for balanced creativity and coherence
+- **Streaming Support**: Real-time token streaming for responsive feel
+
+**Webhook Simulation:**
+- Visual transmission indicators
+- 1.5-second simulated delivery delay
+- Status updates (connected → sending → connected)
+- Animated spinner during transmission
+
+**UI Components:**
+- Pager view with LCD display and physical buttons
+- Fax view with thermal printer styling
+- Mode switcher with active state indicators
+- Input area with send button
+- Webhook status display with LED indicators
 
 ## Browser Support
 
@@ -208,47 +541,157 @@ npm run test:ui
 - Safari 14+
 - Opera 76+
 
-Canvas API and Server-Sent Events are required for full functionality.
+Modern JavaScript (ES6+) support required for full functionality.
+
+## Webhook Configuration Details
+
+### Outgoing Webhooks
+
+When you configure an outgoing webhook URL, Retro Messenger will send HTTP POST requests to that endpoint whenever you send a message. The payload structure is:
+
+```json
+{
+  "sender": "You",
+  "content": "Your message text",
+  "timestamp": "14:32",
+  "type": "sent"
+}
+```
+
+If authentication is enabled, requests include a Bearer token header:
+```
+Authorization: Bearer YOUR_TOKEN_HERE
+```
+
+### Incoming Webhooks
+
+Your unique incoming webhook URL allows external services to send messages to your Retro Messenger instance. To send a message, make a POST request to your incoming webhook URL with this payload:
+
+```json
+{
+  "sender": "External Service",
+  "content": "Message from external system",
+  "type": "received"
+}
+```
+
+The message will appear in your pager or fax interface immediately.
+
+### Security Considerations
+
+- **Authentication**: Always enable Bearer token authentication for production webhooks
+- **HTTPS**: Use HTTPS endpoints for secure transmission
+- **Token Storage**: Keep your auth tokens secure and never commit them to version control
+- **Incoming URL**: Treat your incoming webhook URL as sensitive - anyone with this URL can send messages to your interface
 
 ## Troubleshooting
 
 ### Messages not appearing
-- Check that the backend server is running on port 3001
-- Verify webhook configuration in settings
-- Check browser console for errors
-- Ensure SSE connection is established (check status indicator)
+- Ensure you're typing in the input field and pressing Enter or clicking SEND
+- Check browser console for JavaScript errors
+- Try refreshing the page
 
-### Fax rendering issues
-- If you see "Canvas rendering unavailable" warning, your browser may not support Canvas API
-- The app will fall back to plain text display
-- Try updating your browser to the latest version
+### Chatbot not responding
+- **Check LM Studio connection**: Ensure LM Studio is running with any compatible model loaded
+- **Look for connection status**: Check browser console for "✓ Connected to LM Studio"
+- **Fallback mode**: If LM Studio is offline, chatbot uses simulated responses
+- **Wait for response**: AI responses may take a few seconds to generate depending on model size
+- **Try commands**: Send "HELP" or "STATUS" to test chatbot functionality
+- **Restart LM Studio**: If connection fails, restart LM Studio and reload the page
+- **Load a model**: Ensure you have a model loaded in LM Studio (e.g., `lms load qwen2.5-7b-instruct`)
 
-### Authentication errors
-- Verify the Bearer token matches between sender and receiver
-- Check that authentication is enabled in settings if required
-- Ensure the Authorization header format is correct: `Bearer <token>`
+### LM Studio connection issues
+- **Enhanced diagnostics**: The service now provides detailed error messages with actionable solutions
+- **Improved error detection**: Service checks for loaded models before attempting connection
+- **Common error messages**:
+  - `"No models are loaded"` → **Detailed solution**: 4-step guide to load a model in LM Studio
+  - `"ECONNREFUSED"`, `"Failed to fetch"`, or `"NetworkError"` → **Detailed solution**: 5-step checklist including server enablement and port verification
+  - Generic errors → **Comprehensive troubleshooting**: 4-point checklist for common issues
+- **Visual progress indicators**: Console shows connection progress with emoji indicators (🔌 📍 🔍 📊 🎯 ✅ 🤖)
+- **Model verification**: Service lists loaded models and confirms connection before proceeding
+- **Check console**: Look for detailed error messages and follow the provided solutions
+- **Fallback works**: Application continues to function with simulated responses when LM Studio is unavailable
 
-### Connection issues
-- Check that both frontend and backend are running
-- Verify no firewall is blocking ports 3001 or 5173
-- Check browser console for CORS errors
+### Animations not working
+- Ensure you're using a modern browser (Chrome, Firefox, Safari, Edge)
+- Check that hardware acceleration is enabled in browser settings
+- Try disabling browser extensions that might interfere with CSS animations
+
+### Display issues
+- The application is optimized for desktop and mobile browsers
+- Try zooming in/out if text appears too small or large
+- Clear browser cache and reload if styles appear broken
+
+### Webhook configuration not saving
+- Ensure you click the "Save Configuration" button after making changes
+- Check browser console for any JavaScript errors
+- Verify your webhook URL is a valid HTTP/HTTPS endpoint
+
+### Incoming webhook not working
+- Ensure you're sending POST requests to the correct incoming webhook URL
+- Verify the request payload matches the expected JSON structure
+- Check that CORS is properly configured if sending from a web application
+
+## User Interface
+
+The application features a simplified, retro-themed interface with:
+
+### Header
+- **Retro branding**: "⚡ RETRO MESSENGER ⚡" title with nostalgic styling
+- **Subtitle**: "Modern Messaging Reimagined with 1980s Tech"
+- **Mode toggle**: Switch between Pager and Fax modes
+- **Settings button**: Access webhook configuration panel with:
+  - Outgoing webhook URL configuration
+  - Bearer token authentication setup
+  - Incoming webhook URL display with copy functionality
+  - Save/cancel controls
+
+### Main Display Area
+- Full-width device interface (Pager or Fax mode)
+- Immersive retro experience without distracting sidebars
+- Responsive design adapts to all screen sizes
+
+### Footer
+- **Kiroween branding**: "🎃 Kiroween Hackathon 2025"
+- **Attribution**: Links to AWS Kiro with proper rel attributes
+- **Theme**: Webhooks & Chatbots showcase
+
+### Responsive Design
+- **Mobile (< 768px)**: Stacked layout with touch-optimized controls
+- **Tablet (768px - 1023px)**: Optimized spacing for medium screens
+- **Desktop (≥ 1024px)**: Full-width immersive experience
 
 ## Performance Optimization
 
 The application includes several performance optimizations:
-- React.memo for message and thumbnail components
-- Optimized canvas rendering with willReadFrequently flag
-- Pixel sampling for texture effects (every 4th pixel)
-- Off-screen canvas for fax rendering
-- Message history limited to 50 (pager) / 100 (fax)
+- Lightweight component structure with minimal re-renders
+- Efficient state management with React hooks
+- CSS-based animations for smooth performance
+- Auto-scroll to latest message using refs
+- Message display limited to last 5 in pager mode
+- Simplified layout structure for faster rendering
 
-## Security
+## Demo Features
 
-- All message content is sanitized using DOMPurify
-- XSS protection on incoming webhooks
-- Optional Bearer token authentication
-- CORS configuration for production deployment
-- Input validation on all endpoints
+This is a demonstration application showcasing:
+- Retro UI/UX design principles
+- Simulated webhook integration patterns
+- Basic chatbot command processing
+- Mode switching between different interface paradigms
+- Authentic vintage device aesthetics
+
+For production use, consider integrating:
+- Real backend API for message persistence
+- Actual webhook endpoints for external integrations (now configurable via settings)
+- Webhook signature verification for security
+- **Cloud-hosted LLM APIs** (OpenAI, Anthropic, etc.) for production AI chatbot
+- **Production LM Studio Setup**: Configure a backend proxy server for LM Studio connections (the Vite dev proxy only works in development)
+- User authentication and multi-user support
+- Message encryption and security features
+- Webhook retry logic and failure handling
+- Rate limiting for incoming webhook requests
+- LLM response caching for improved performance
+- Fine-tuned models for domain-specific conversations
 
 ## License
 
@@ -258,6 +701,43 @@ MIT
 
 Contributions are welcome! Please feel free to submit a Pull Request.
 
+## Developer Notes
+
+### LLM Integration Implementation
+
+The LM Studio integration is implemented in `src/services/LLMChatbotService.js`:
+
+**Key Methods**:
+- `connect()` - Establishes connection to LM Studio
+- `generateResponse(message)` - Generates AI response with streaming
+- `setMode(mode)` - Updates system prompt based on interface mode
+- `clearHistory()` - Resets conversation history
+- `isLLMConnected()` - Returns connection status
+
+**Integration Points**:
+- Import: `import { llmChatbot } from './services/LLMChatbotService'`
+- Initialize on component mount with `llmChatbot.connect()`
+- Call `llmChatbot.generateResponse(userMessage)` for AI responses
+- Update mode with `llmChatbot.setMode('pager')` or `llmChatbot.setMode('fax')`
+
+**Configuration**:
+- Max tokens: 150 (configurable in service)
+- Temperature: 0.7 (configurable in service)
+- History limit: 20 messages (configurable in service)
+- System prompts: Defined in `setSystemPrompt()` method
+
+### Dependencies
+
+**Core**:
+- `@lmstudio/sdk` (^1.5.0) - LM Studio JavaScript SDK
+- `react` (^18.3.1) - UI framework
+- `vite` (^6.0.1) - Build tool
+
+**Optional**:
+- LM Studio desktop application for AI chatbot functionality
+
 ## Acknowledgments
 
 Built with nostalgia for the communication devices of yesteryear. 📟📠✨
+
+Powered by [LM Studio](https://lmstudio.ai) for local AI inference.

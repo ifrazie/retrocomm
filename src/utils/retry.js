@@ -3,6 +3,8 @@
  * Implements exponential backoff retry logic for failed operations
  */
 
+import { logger } from './logger.js';
+
 /**
  * Sleep for a specified duration
  * @param {number} ms - Milliseconds to sleep
@@ -36,7 +38,7 @@ export const retryWithBackoff = async (
       
       // Log successful attempt
       if (attempt > 1) {
-        console.log(`Operation succeeded on attempt ${attempt}`);
+        logger.info(`Operation succeeded on attempt ${attempt}`);
       }
       
       return result;
@@ -44,11 +46,11 @@ export const retryWithBackoff = async (
       lastError = error;
       
       // Log failed attempt
-      console.warn(`Attempt ${attempt}/${maxAttempts} failed:`, error.message);
+      logger.warn(`Attempt ${attempt}/${maxAttempts} failed:`, error.message);
       
       // If this was the last attempt, throw the error
       if (attempt === maxAttempts) {
-        console.error(`All ${maxAttempts} attempts failed. Last error:`, error);
+        logger.error(`All ${maxAttempts} attempts failed. Last error:`, error);
         throw error;
       }
       
@@ -58,7 +60,7 @@ export const retryWithBackoff = async (
       // Call retry callback
       onRetry(attempt, delay, error);
       
-      console.log(`Retrying in ${delay}ms...`);
+      logger.info(`Retrying in ${delay}ms...`);
       
       // Wait before next attempt
       await sleep(delay);

@@ -4,8 +4,7 @@
   "description": "Generate comprehensive API documentation by analyzing the Express.js routes in the server/routes directory",
   "version": "1",
   "when": {
-    "type": "fileEdited",
-    "patterns": []
+    "type": "userTriggered"
   },
   "then": {
     "type": "askAgent",

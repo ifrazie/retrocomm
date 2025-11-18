@@ -1,5 +1,6 @@
-import React, { createContext, useContext, useReducer, useEffect } from 'react';
+import React, { createContext, useContext, useReducer, useEffect, useMemo } from 'react';
 import { getMessageHistory, saveMessageHistory } from '../utils/storage.js';
+import { MAX_STORED_MESSAGES } from '../utils/constants.js';
 
 // Action types
 const ADD_MESSAGE = 'ADD_MESSAGE';
@@ -19,8 +20,8 @@ const messageReducer = (state, action) => {
   switch (action.type) {
     case ADD_MESSAGE: {
       const newMessages = [...state.messages, action.payload];
-      // Limit to 100 messages
-      const limitedMessages = newMessages.slice(-100);
+      // Limit to MAX_STORED_MESSAGES
+      const limitedMessages = newMessages.slice(-MAX_STORED_MESSAGES);
       return {
         ...state,
         messages: limitedMessages
@@ -34,8 +35,8 @@ const messageReducer = (state, action) => {
       };
 
     case SET_MESSAGES: {
-      // Limit to 100 messages when setting
-      const limitedMessages = action.payload.slice(-100);
+      // Limit to MAX_STORED_MESSAGES when setting
+      const limitedMessages = action.payload.slice(-MAX_STORED_MESSAGES);
       return {
         ...state,
         messages: limitedMessages
@@ -59,7 +60,7 @@ export const MessageProvider = ({ children }) => {
 
   // Load messages from localStorage on mount
   useEffect(() => {
-    const savedMessages = getMessageHistory(100);
+    const savedMessages = getMessageHistory(MAX_STORED_MESSAGES);
     if (savedMessages && savedMessages.length > 0) {
       dispatch({ type: SET_MESSAGES, payload: savedMessages });
     }
@@ -96,12 +97,14 @@ export const MessageProvider = ({ children }) => {
     dispatch({ type: SET_MESSAGES, payload: messages });
   };
 
-  const value = {
+  // Memoize context value to prevent unnecessary re-renders of consumers
+  // Only recalculate when messages array actually changes
+  const value = useMemo(() => ({
     messages: state.messages,
     addMessage,
     clearHistory,
     setMessages
-  };
+  }), [state.messages, addMessage, clearHistory, setMessages]);
 
   return (
     <MessageContext.Provider value={value}>

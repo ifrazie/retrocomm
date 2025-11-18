@@ -14,7 +14,7 @@ const StatusIndicator = ({ status, onConfigureClick }) => {
    * Determine status type based on connection state
    * @returns {'connected' | 'disconnected' | 'error'}
    */
-  const _getStatusType = () => {
+  const getStatusType = () => {
     if (status.error) {
       return 'error';
     }
@@ -25,8 +25,8 @@ const StatusIndicator = ({ status, onConfigureClick }) => {
    * Get status label text
    * @returns {string}
    */
-  const _getStatusLabel = () => {
-    const statusType = _getStatusType();
+  const getStatusLabel = () => {
+    const statusType = getStatusType();
     switch (statusType) {
       case 'connected':
         return 'Connected';
@@ -42,8 +42,8 @@ const StatusIndicator = ({ status, onConfigureClick }) => {
    * Get status description text
    * @returns {string}
    */
-  const _getStatusDescription = () => {
-    const statusType = _getStatusType();
+  const getStatusDescription = () => {
+    const statusType = getStatusType();
     switch (statusType) {
       case 'connected':
         return 'Ready to send and receive messages';
@@ -55,19 +55,19 @@ const StatusIndicator = ({ status, onConfigureClick }) => {
     }
   };
 
-  const statusType = _getStatusType();
+  const statusType = getStatusType();
   const showConfigPrompt = statusType === 'disconnected' && onConfigureClick;
 
   return (
     <div className="StatusIndicator">
       <div className={`StatusIndicator__indicator StatusIndicator__indicator--${statusType}`}>
         <span className="StatusIndicator__dot" />
-        <span className="StatusIndicator__label">{_getStatusLabel()}</span>
+        <span className="StatusIndicator__label">{getStatusLabel()}</span>
       </div>
       
       <div className="StatusIndicator__details">
         <p className="StatusIndicator__description">
-          {_getStatusDescription()}
+          {getStatusDescription()}
         </p>
         
         {showConfigPrompt && (

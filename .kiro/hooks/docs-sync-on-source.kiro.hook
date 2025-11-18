@@ -4,17 +4,7 @@
   "description": "Watches JavaScript source files and configuration files for changes and prompts to update documentation in README.md accordingly",
   "version": "1",
   "when": {
-    "type": "fileEdited",
-    "patterns": [
-      "src/**/*.js",
-      "src/**/*.jsx",
-      "server/**/*.js",
-      "*.js",
-      "*.jsx",
-      "package.json",
-      "vite.config.js",
-      "eslint.config.js"
-    ]
+    "type": "userTriggered"
   },
   "then": {
     "type": "askAgent",

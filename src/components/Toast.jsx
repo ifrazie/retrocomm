@@ -1,44 +1,48 @@
 import React, { useEffect } from 'react';
-import './Toast.css';
+import PropTypes from 'prop-types';
+import '../styles/toast.css';
 
 /**
- * Toast Component
- * Displays temporary notification messages with optional retry action
+ * Toast notification component
+ * @param {Object} props
+ * @param {string} props.message - Notification message
+ * @param {string} props.type - 'success' | 'error' | 'info' | 'warning'
+ * @param {number} props.duration - Display duration in ms (default: 3000)
+ * @param {function} props.onClose - Callback when toast closes
  */
-const Toast = ({ message, type = 'error', onRetry, onClose, duration = 5000 }) => {
+const Toast = ({ message, type = 'info', duration = 3000, onClose }) => {
   useEffect(() => {
-    if (!onRetry && duration > 0) {
-      const timer = setTimeout(() => {
-        onClose();
-      }, duration);
+    const timer = setTimeout(() => {
+      onClose();
+    }, duration);
 
-      return () => clearTimeout(timer);
-    }
-  }, [duration, onRetry, onClose]);
+    return () => clearTimeout(timer);
+  }, [duration, onClose]);
 
-  const _handleRetry = () => {
-    if (onRetry) {
-      onRetry();
+  const getIcon = (type) => {
+    switch (type) {
+      case 'success': return '✓';
+      case 'error': return '✗';
+      case 'warning': return '⚠';
+      case 'info': return 'ℹ';
+      default: return 'ℹ';
     }
   };
 
   return (
-    <div className={`Toast Toast--${type}`}>
-      <div className="Toast__content">
-        <span className="Toast__message">{message}</span>
-        <div className="Toast__actions">
-          {onRetry && (
-            <button className="Toast__retry-btn" onClick={_handleRetry}>
-              Retry
-            </button>
-          )}
-          <button className="Toast__close-btn" onClick={onClose}>
-            ×
-          </button>
-        </div>
-      </div>
+    <div className={`toast toast-${type}`}>
+      <span className="toast-icon">{getIcon(type)}</span>
+      <span className="toast-message">{message}</span>
     </div>
   );
 };
 
-export default Toast;
+Toast.propTypes = {
+  message: PropTypes.string.isRequired,
+  type: PropTypes.oneOf(['success', 'error', 'info', 'warning']),
+  duration: PropTypes.number,
+  onClose: PropTypes.func.isRequired
+};
+
+// Memoize to prevent unnecessary re-renders when parent re-renders
+export default React.memo(Toast);

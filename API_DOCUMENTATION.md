@@ -1,156 +1,311 @@
-# API Documentation
+# Retro Messenger API Documentation
 
 ## Overview
 
-This API provides a real-time messaging system with webhook support, Server-Sent Events (SSE) for live updates, and message forwarding capabilities.
+This document provides comprehensive documentation for the Retro Messenger Express.js backend API. The API supports user authentication, real-time messaging with end-to-end encryption (E2EE), and webhook integrations.
 
-**Base URL:** `http://localhost:3001/api`
+**Base URL**: `http://localhost:3001/api`
 
-**Global Middleware:**
-- CORS enabled for all origins
-- JSON body parser
+**Content-Type**: `application/json` (for all POST requests)
 
 ---
 
-## Authentication
+## Table of Contents
 
-Authentication is optional and controlled via environment variables:
-- **Environment Variable:** `AUTH_ENABLED=true` (enables authentication)
-- **Token Variable:** `AUTH_TOKEN=<your-token>` (sets the expected token)
-
-When enabled, protected endpoints require:
-- **Header:** `Authorization: Bearer <token>`
-- **Status Codes:**
-  - `401 Unauthorized` - Missing or invalid token
+1. [Authentication Routes](#authentication-routes)
+2. [Messaging Routes](#messaging-routes)
+3. [Webhook Routes](#webhook-routes)
+4. [Send Routes](#send-routes)
+5. [Middleware](#middleware)
+6. [Error Responses](#error-responses)
 
 ---
 
-## Endpoints
+## Authentication Routes
 
-### 1. Health Check
+### POST /api/auth/register
 
-**GET** `/api/health`
+Register a new user with username, password, and public key for E2EE.
 
-Check if the server is running.
+**Endpoint**: `/api/auth/register`
 
-**Authentication:** None
+**Method**: `POST`
 
-**Request Parameters:** None
+**Authentication**: None
 
-**Response:**
-
-**Status Code:** `200 OK`
-
+**Request Body**:
 ```json
 {
-  "status": "ok",
-  "message": "Retro Messenger backend is running"
+  "username": "string (required, non-empty)",
+  "password": "string (required, min 6 characters)",
+  "publicKey": "string (required, RSA-2048 public key in PEM format)"
 }
 ```
 
----
-
-### 2. Webhook Receiver
-
-**POST** `/api/webhook`
-
-Accepts incoming webhook payloads and broadcasts messages to all connected SSE clients.
-
-**Authentication:** Required (if `AUTH_ENABLED=true`)
-
-**Middleware:**
-- `authMiddleware` - Validates Bearer token
-- `validateMessageMiddleware` - Validates and sanitizes payload
-
-**Request Headers:**
-```
-Content-Type: application/json
-Authorization: Bearer <token>  (if auth enabled)
-```
-
-**Request Body:**
-
-```json
-{
-  "message": "string (required)",
-  "sender": "string (optional)",
-  "timestamp": "number (optional)",
-  "metadata": "object (optional)"
-}
-```
-
-**Field Descriptions:**
-- `message` (required): The message content (string). Will be sanitized to prevent XSS.
-- `sender` (optional): Identifier for the message sender (string). Will be sanitized.
-- `timestamp` (optional): Unix timestamp in milliseconds (number). Defaults to current time if not provided.
-- `metadata` (optional): Additional metadata as a JSON object.
-
-**Validation Rules:**
-- `message` field is required and must be a string
-- `sender` must be a string if provided
-- `timestamp` must be a number if provided
-- `metadata` must be an object if provided
-- HTML tags are stripped from `message` and `sender`
-- Special characters are encoded to prevent XSS attacks
-
-**Response:**
-
-**Status Code:** `200 OK`
-
+**Success Response** (200 OK):
 ```json
 {
   "success": true,
-  "messageId": "uuid-v4-string"
+  "userId": "string (UUID)",
+  "username": "string",
+  "sessionId": "string (UUID)",
+  "isNewUser": true
 }
 ```
 
-**Error Responses:**
-
-**Status Code:** `400 Bad Request`
-
-```json
-{
-  "error": "Invalid payload",
-  "details": ["message field is required"]
-}
-```
-
-**Status Code:** `401 Unauthorized`
-
-```json
-{
-  "error": "Unauthorized"
-}
-```
-
-**Example Request:**
-
-```bash
-curl -X POST http://localhost:3001/api/webhook \
-  -H "Content-Type: application/json" \
-  -H "Authorization: Bearer your-token-here" \
-  -d '{
-    "message": "Hello, World!",
-    "sender": "User123",
-    "metadata": {
-      "priority": "high"
-    }
-  }'
-```
+**Error Responses**:
+- `400 Bad Request`: Missing or invalid fields
+  ```json
+  {
+    "error": "Username is required"
+  }
+  ```
+  ```json
+  {
+    "error": "Password must be at least 6 characters"
+  }
+  ```
+  ```json
+  {
+    "error": "Public key is required"
+  }
+  ```
+  ```json
+  {
+    "error": "Username already exists"
+  }
+  ```
 
 ---
 
-### 3. Message Stream (SSE)
+### POST /api/auth/login
 
-**GET** `/api/messages/stream`
+Authenticate existing user and retrieve session credentials.
 
-Server-Sent Events endpoint for receiving real-time message updates.
+**Endpoint**: `/api/auth/login`
 
-**Authentication:** None
+**Method**: `POST`
 
-**Request Parameters:** None
+**Authentication**: None
 
-**Response Headers:**
+**Request Body**:
+```json
+{
+  "username": "string (required, non-empty)",
+  "password": "string (required)"
+}
+```
+
+**Success Response** (200 OK):
+```json
+{
+  "success": true,
+  "userId": "string (UUID)",
+  "username": "string",
+  "sessionId": "string (UUID)",
+  "publicKey": "string (RSA public key)",
+  "encryptedPrivateKey": "string (encrypted private key)",
+  "isNewUser": false
+}
+```
+
+**Error Responses**:
+- `400 Bad Request`: Missing fields or invalid credentials
+  ```json
+  {
+    "error": "Username is required"
+  }
+  ```
+  ```json
+  {
+    "error": "Password is required"
+  }
+  ```
+  ```json
+  {
+    "error": "Invalid username or password"
+  }
+  ```
+
+---
+
+### POST /api/auth/store-private-key
+
+Store user's encrypted private key on the server (for E2EE key recovery).
+
+**Endpoint**: `/api/auth/store-private-key`
+
+**Method**: `POST`
+
+**Authentication**: Session-based (sessionId required)
+
+**Request Body**:
+```json
+{
+  "sessionId": "string (required, UUID)",
+  "encryptedPrivateKey": "string (required, encrypted with password-derived key)"
+}
+```
+
+**Success Response** (200 OK):
+```json
+{
+  "success": true
+}
+```
+
+**Error Responses**:
+- `400 Bad Request`: Missing fields
+  ```json
+  {
+    "error": "sessionId is required"
+  }
+  ```
+  ```json
+  {
+    "error": "encryptedPrivateKey is required"
+  }
+  ```
+- `401 Unauthorized`: Invalid session
+  ```json
+  {
+    "error": "Invalid session"
+  }
+  ```
+
+---
+
+### POST /api/auth/logout
+
+Logout user and invalidate session.
+
+**Endpoint**: `/api/auth/logout`
+
+**Method**: `POST`
+
+**Authentication**: Session-based (sessionId required)
+
+**Request Body**:
+```json
+{
+  "sessionId": "string (required, UUID)"
+}
+```
+
+**Success Response** (200 OK):
+```json
+{
+  "success": true
+}
+```
+
+**Error Responses**:
+- `400 Bad Request`: Missing sessionId
+  ```json
+  {
+    "error": "sessionId is required"
+  }
+  ```
+
+---
+
+### GET /api/auth/users
+
+Get list of all registered users (excluding current user).
+
+**Endpoint**: `/api/auth/users`
+
+**Method**: `GET`
+
+**Authentication**: Session-based (sessionId required)
+
+**Query Parameters**:
+- `sessionId` (string, required): User's session ID
+
+**Success Response** (200 OK):
+```json
+{
+  "users": [
+    {
+      "username": "string",
+      "online": "boolean",
+      "lastSeen": "number (timestamp)",
+      "publicKey": "string (RSA public key for E2EE)"
+    }
+  ]
+}
+```
+
+**Error Responses**:
+- `400 Bad Request`: Missing sessionId
+  ```json
+  {
+    "error": "sessionId is required"
+  }
+  ```
+- `401 Unauthorized`: Invalid session
+  ```json
+  {
+    "error": "Invalid session"
+  }
+  ```
+
+---
+
+### GET /api/auth/session
+
+Verify session validity and retrieve user information.
+
+**Endpoint**: `/api/auth/session`
+
+**Method**: `GET`
+
+**Authentication**: Session-based (sessionId required)
+
+**Query Parameters**:
+- `sessionId` (string, required): User's session ID
+
+**Success Response** (200 OK):
+```json
+{
+  "userId": "string (UUID)",
+  "username": "string",
+  "online": "boolean"
+}
+```
+
+**Error Responses**:
+- `400 Bad Request`: Missing sessionId
+  ```json
+  {
+    "error": "sessionId is required"
+  }
+  ```
+- `401 Unauthorized`: Invalid session
+  ```json
+  {
+    "error": "Invalid session"
+  }
+  ```
+
+---
+
+## Messaging Routes
+
+### GET /api/messages/stream
+
+Server-Sent Events (SSE) endpoint for real-time message delivery.
+
+**Endpoint**: `/api/messages/stream`
+
+**Method**: `GET`
+
+**Authentication**: Session-based (sessionId required)
+
+**Query Parameters**:
+- `sessionId` (string, required): User's session ID
+
+**Response Headers**:
 ```
 Content-Type: text/event-stream
 Cache-Control: no-cache
@@ -158,113 +313,308 @@ Connection: keep-alive
 Access-Control-Allow-Origin: *
 ```
 
-**Response Format:**
-
-The endpoint streams messages in SSE format. Each message is sent as:
-
+**SSE Event Format**:
 ```
-data: <json-object>\n\n
-```
+data: {"type": "connected", "userId": "string", "username": "string"}
 
-**Initial Connection Message:**
-
-```
-data: {"type":"connected"}
+data: {"type": "new_message", "message": {...}}
 ```
 
-**Broadcast Message Format:**
+**Connection Lifecycle**:
+1. Client connects with valid sessionId
+2. User marked as online
+3. Initial "connected" event sent
+4. Real-time message events streamed
+5. On disconnect: user marked offline, connection removed
 
+**Error Responses**:
+- `400 Bad Request`: Missing sessionId
+  ```json
+  {
+    "error": "sessionId is required"
+  }
+  ```
+- `401 Unauthorized`: Invalid session
+  ```json
+  {
+    "error": "Invalid session"
+  }
+  ```
+
+---
+
+### POST /api/messages/send
+
+Send an encrypted or plain-text message to another user.
+
+**Endpoint**: `/api/messages/send`
+
+**Method**: `POST`
+
+**Authentication**: Session-based (sessionId required)
+
+**Request Body**:
 ```json
 {
-  "id": "uuid-v4-string",
-  "content": "message text",
-  "timestamp": 1234567890123,
-  "sender": "optional-sender-id",
-  "metadata": {
-    "optional": "metadata"
+  "sessionId": "string (required, UUID)",
+  "toUsername": "string (required, recipient username)",
+  "content": "string (required, message content - encrypted or plain)",
+  "encrypted": "boolean (optional, indicates if content is encrypted)"
+}
+```
+
+**Success Response** (200 OK):
+```json
+{
+  "success": true,
+  "messageId": "string (UUID)",
+  "status": "string (delivered/pending)",
+  "timestamp": "number (Unix timestamp)"
+}
+```
+
+**Real-time Notification** (sent to recipient via SSE):
+```json
+{
+  "type": "new_message",
+  "message": {
+    "messageId": "string (UUID)",
+    "from": "string (sender username)",
+    "fromUserId": "string (sender UUID)",
+    "content": "string (encrypted or plain)",
+    "encrypted": "boolean",
+    "timestamp": "number",
+    "status": "string"
   }
 }
 ```
 
-**Connection Lifecycle:**
-- Client connects and receives a `{"type":"connected"}` message
-- Client remains connected and receives messages as they are broadcast
-- Connection closes when client disconnects
-- Client is automatically removed from the broadcast list on disconnect
-
-**Example Usage (JavaScript):**
-
-```javascript
-const eventSource = new EventSource('http://localhost:3001/api/messages/stream');
-
-eventSource.onmessage = (event) => {
-  const data = JSON.parse(event.data);
-  console.log('Received message:', data);
-};
-
-eventSource.onerror = (error) => {
-  console.error('SSE error:', error);
-};
-```
+**Error Responses**:
+- `400 Bad Request`: Missing required fields
+  ```json
+  {
+    "error": "sessionId, toUsername, and content are required"
+  }
+  ```
+- `401 Unauthorized`: Invalid session
+  ```json
+  {
+    "error": "Invalid session"
+  }
+  ```
+- `404 Not Found`: Recipient doesn't exist
+  ```json
+  {
+    "error": "Recipient not found"
+  }
+  ```
 
 ---
 
-### 4. Send Message to External Webhook
+### GET /api/messages/inbox
 
-**POST** `/api/send`
+Retrieve user's inbox messages.
 
-Forwards messages to external webhook URLs with automatic retry logic.
+**Endpoint**: `/api/messages/inbox`
 
-**Authentication:** None
+**Method**: `GET`
 
-**Request Headers:**
-```
-Content-Type: application/json
-```
+**Authentication**: Session-based (sessionId required)
 
-**Request Body:**
+**Query Parameters**:
+- `sessionId` (string, required): User's session ID
+- `limit` (number, optional): Maximum messages to return (default: 50)
 
+**Success Response** (200 OK):
 ```json
 {
-  "webhookUrl": "string (required)",
-  "message": "string (required)",
+  "messages": [
+    {
+      "messageId": "string (UUID)",
+      "from": "string (sender userId)",
+      "content": "string (encrypted or plain)",
+      "timestamp": "number (Unix timestamp)",
+      "status": "string (delivered/read)"
+    }
+  ],
+  "unreadCount": "number"
+}
+```
+
+**Error Responses**:
+- `400 Bad Request`: Missing sessionId
+  ```json
+  {
+    "error": "sessionId is required"
+  }
+  ```
+- `401 Unauthorized`: Invalid session
+  ```json
+  {
+    "error": "Invalid session"
+  }
+  ```
+
+---
+
+### POST /api/messages/read
+
+Mark a message as read.
+
+**Endpoint**: `/api/messages/read`
+
+**Method**: `POST`
+
+**Authentication**: Session-based (sessionId required)
+
+**Request Body**:
+```json
+{
+  "sessionId": "string (required, UUID)",
+  "messageId": "string (required, UUID)"
+}
+```
+
+**Success Response** (200 OK):
+```json
+{
+  "success": true,
+  "message": {
+    "messageId": "string",
+    "status": "read",
+    "readAt": "number (timestamp)"
+  }
+}
+```
+
+**Error Responses**:
+- `400 Bad Request`: Missing fields
+  ```json
+  {
+    "error": "sessionId and messageId are required"
+  }
+  ```
+- `401 Unauthorized`: Invalid session
+  ```json
+  {
+    "error": "Invalid session"
+  }
+  ```
+- `404 Not Found`: Message not found
+  ```json
+  {
+    "error": "Message not found"
+  }
+  ```
+
+---
+
+## Webhook Routes
+
+### POST /api/webhook
+
+Accept incoming webhook payloads and broadcast to connected SSE clients.
+
+**Endpoint**: `/api/webhook`
+
+**Method**: `POST`
+
+**Authentication**: Bearer token (optional, controlled by AUTH_ENABLED env var)
+
+**Middleware**:
+- `authMiddleware`: Validates Bearer token if AUTH_ENABLED=true
+- `validateMessageMiddleware`: Validates and sanitizes payload
+
+**Request Headers** (if authentication enabled):
+```
+Authorization: Bearer <token>
+```
+
+**Request Body**:
+```json
+{
+  "message": "string (required, message content)",
+  "sender": "string (optional, sender identifier)",
+  "timestamp": "number (optional, Unix timestamp)",
+  "metadata": "object (optional, additional data)"
+}
+```
+
+**Success Response** (200 OK):
+```json
+{
+  "success": true,
+  "messageId": "string (UUID)"
+}
+```
+
+**Broadcast Event** (sent to all SSE clients):
+```json
+{
+  "id": "string (UUID)",
+  "content": "string (sanitized message)",
+  "timestamp": "number",
   "sender": "string (optional)",
   "metadata": "object (optional)"
 }
 ```
 
-**Field Descriptions:**
-- `webhookUrl` (required): Valid URL to send the webhook to
-- `message` (required): The message content to send
-- `sender` (optional): Identifier for the message sender
-- `metadata` (optional): Additional metadata as a JSON object
+**Error Responses**:
+- `400 Bad Request`: Invalid payload
+  ```json
+  {
+    "error": "Invalid payload",
+    "details": ["message field is required"]
+  }
+  ```
+  ```json
+  {
+    "error": "Invalid payload",
+    "details": ["message must be a string"]
+  }
+  ```
+- `401 Unauthorized`: Missing or invalid auth token (if AUTH_ENABLED=true)
+  ```json
+  {
+    "error": "Unauthorized"
+  }
+  ```
 
-**Validation Rules:**
-- `webhookUrl` and `message` are required
-- `webhookUrl` must be a valid URL format
+---
 
-**Retry Logic:**
-- Maximum retries: 3 attempts
-- Initial backoff: 1000ms
-- Exponential backoff on subsequent retries
+## Send Routes
 
-**Outgoing Webhook Payload:**
+### POST /api/send
 
-The endpoint sends the following payload to the specified webhook URL:
+Forward messages to external webhook URLs with automatic retry logic.
 
+**Endpoint**: `/api/send`
+
+**Method**: `POST`
+
+**Authentication**: None
+
+**Request Body**:
 ```json
 {
-  "message": "string",
-  "sender": "string or undefined",
-  "timestamp": 1234567890123,
-  "metadata": "object or undefined"
+  "webhookUrl": "string (required, valid URL)",
+  "message": "string (required, message content)",
+  "sender": "string (optional, sender identifier)",
+  "metadata": "object (optional, additional data)"
 }
 ```
 
-**Response:**
+**Outgoing Webhook Payload** (sent to webhookUrl):
+```json
+{
+  "message": "string",
+  "sender": "string (optional)",
+  "timestamp": "number (Unix timestamp)",
+  "metadata": "object (optional)"
+}
+```
 
-**Status Code:** `200 OK`
-
+**Success Response** (200 OK):
 ```json
 {
   "success": true,
@@ -272,140 +622,302 @@ The endpoint sends the following payload to the specified webhook URL:
 }
 ```
 
-**Error Responses:**
+**Error Responses**:
+- `400 Bad Request`: Missing or invalid fields
+  ```json
+  {
+    "error": "Invalid payload",
+    "details": ["webhookUrl and message are required"]
+  }
+  ```
+  ```json
+  {
+    "error": "Invalid payload",
+    "details": ["webhookUrl must be a valid URL"]
+  }
+  ```
+- `500 Internal Server Error`: Webhook delivery failed after retries
+  ```json
+  {
+    "error": "Failed to deliver message",
+    "details": "Webhook returned status 500"
+  }
+  ```
 
-**Status Code:** `400 Bad Request`
+**Retry Logic**:
+- Maximum attempts: 3
+- Initial delay: 1000ms
+- Exponential backoff between retries
 
-```json
-{
-  "error": "Invalid payload",
-  "details": ["webhookUrl and message are required"]
-}
+---
+
+## Middleware
+
+### authMiddleware
+
+Validates Bearer token authentication for webhook endpoints.
+
+**Location**: `server/middleware/auth.js`
+
+**Behavior**:
+- Checks `AUTH_ENABLED` environment variable
+- If disabled, passes through without validation
+- If enabled, validates `Authorization` header
+- Supports both `Bearer <token>` and raw token formats
+- Compares against `AUTH_TOKEN` environment variable
+
+**Usage**:
+```javascript
+router.post('/webhook', authMiddleware, handler);
 ```
 
-or
+**Environment Variables**:
+- `AUTH_ENABLED`: "true" to enable, any other value to disable
+- `AUTH_TOKEN`: Expected bearer token value
 
-```json
-{
-  "error": "Invalid payload",
-  "details": ["webhookUrl must be a valid URL"]
-}
-```
+---
 
-**Status Code:** `500 Internal Server Error`
+### validateMessageMiddleware
 
-```json
-{
-  "error": "Failed to deliver message",
-  "details": "error message"
-}
-```
+Validates and sanitizes webhook message payloads.
 
-**Example Request:**
+**Location**: `server/middleware/validator.js`
 
-```bash
-curl -X POST http://localhost:3001/api/send \
-  -H "Content-Type: application/json" \
-  -d '{
-    "webhookUrl": "https://example.com/webhook",
-    "message": "Hello from Retro Messenger!",
-    "sender": "System",
-    "metadata": {
-      "source": "api"
-    }
-  }'
+**Validation Rules**:
+- `message`: Required, must be string
+- `sender`: Optional, must be string if provided
+- `timestamp`: Optional, must be number if provided
+- `metadata`: Optional, must be object if provided
+
+**Sanitization**:
+- Removes HTML tags from message and sender
+- Encodes special characters: `& < > " ' /`
+- Prevents XSS attacks
+
+**Usage**:
+```javascript
+router.post('/webhook', validateMessageMiddleware, handler);
 ```
 
 ---
 
-## Error Handling
+## Error Responses
 
-All endpoints follow consistent error response formats:
+### Standard Error Format
 
-**Validation Errors (400):**
+All error responses follow this structure:
+
 ```json
 {
-  "error": "Error type",
-  "details": ["Array of specific error messages"]
+  "error": "string (error message)"
 }
 ```
 
-**Authentication Errors (401):**
+Or with additional details:
+
 ```json
 {
-  "error": "Unauthorized"
+  "error": "string (error message)",
+  "details": "string or array (additional information)"
 }
 ```
 
-**Server Errors (500):**
-```json
-{
-  "error": "Error type",
-  "details": "Error message"
-}
-```
+### HTTP Status Codes
 
----
-
-## Security Features
-
-### XSS Prevention
-- All message content and sender fields are sanitized
-- HTML tags are stripped
-- Special characters are encoded
-
-### Authentication
-- Optional Bearer token authentication
-- Configurable via environment variables
-- Applied to sensitive endpoints (webhook receiver)
-
-### CORS
-- Enabled for all origins
-- Allows cross-origin requests from any domain
+- `200 OK`: Request successful
+- `400 Bad Request`: Invalid request parameters or payload
+- `401 Unauthorized`: Authentication failed or invalid session
+- `404 Not Found`: Resource not found (user, message, etc.)
+- `500 Internal Server Error`: Server-side error (webhook delivery failure, etc.)
 
 ---
 
 ## Environment Variables
 
-| Variable | Description | Default | Required |
-|----------|-------------|---------|----------|
-| `PORT` | Server port | `3001` | No |
-| `AUTH_ENABLED` | Enable authentication | `false` | No |
-| `AUTH_TOKEN` | Expected Bearer token | - | If auth enabled |
+### Required for Production
+
+- `AUTH_ENABLED`: Set to "true" to enable webhook authentication
+- `AUTH_TOKEN`: Bearer token for webhook authentication
+
+### Optional
+
+- `PORT`: Server port (default: 3001)
+- `NODE_ENV`: Environment mode (development/production)
 
 ---
 
-## Message Flow
+## Security Considerations
 
-### Receiving Messages (Webhook → SSE)
-1. External service sends POST to `/api/webhook`
-2. Authentication middleware validates token (if enabled)
-3. Validation middleware checks and sanitizes payload
-4. Message is assigned a unique ID
-5. Message is broadcast to all connected SSE clients
-6. Success response returned to sender
+### End-to-End Encryption (E2EE)
 
-### Sending Messages (API → External Webhook)
-1. Client sends POST to `/api/send` with webhook URL
-2. Payload is validated
-3. Message is sent to external webhook with retry logic
-4. Up to 3 attempts with exponential backoff
-5. Success or failure response returned
+- Messages can be encrypted client-side before transmission
+- Server stores encrypted content without decryption capability
+- Public keys exchanged via `/api/auth/users` endpoint
+- Private keys encrypted with password-derived keys (PBKDF2)
 
-### Real-time Updates (SSE)
-1. Client connects to `/api/messages/stream`
-2. Connection established with SSE headers
-3. Client receives connection confirmation
-4. Client receives all broadcast messages in real-time
-5. Connection maintained until client disconnects
+### Authentication
+
+- Session-based authentication using UUID session IDs
+- Passwords hashed with bcrypt (10 rounds)
+- Bearer token authentication for webhook endpoints
+- Session validation on all protected routes
+
+### Input Sanitization
+
+- HTML tag removal from user input
+- Special character encoding
+- XSS prevention via validateMessageMiddleware
+- URL validation for webhook endpoints
+
+### Rate Limiting
+
+**Note**: Not currently implemented. Consider adding rate limiting middleware for production deployments.
 
 ---
 
-## Status Code Summary
+## WebSocket/SSE Architecture
 
-| Code | Description |
-|------|-------------|
-| `200` | Success |
-| `400` | Bad Request - Invalid payload or parameters |
-| `401` | Unauthorized - Missing or invalid authentication |
-| `500` | Internal Server Error - Failed to process request |
+### Server-Sent Events (SSE)
+
+The application uses SSE for real-time message delivery instead of WebSockets:
+
+**Advantages**:
+- Simpler implementation
+- Automatic reconnection
+- Works over HTTP/HTTPS
+- No special server configuration needed
+
+**Connection Management**:
+- Connections stored in `WebSocketService`
+- Users marked online/offline based on connection status
+- Automatic cleanup on client disconnect
+- Broadcast capability to all or specific users
+
+---
+
+## Example Usage
+
+### Complete Authentication Flow
+
+```javascript
+// 1. Register new user
+const registerResponse = await fetch('/api/auth/register', {
+  method: 'POST',
+  headers: { 'Content-Type': 'application/json' },
+  body: JSON.stringify({
+    username: 'alice',
+    password: 'securepass123',
+    publicKey: '-----BEGIN PUBLIC KEY-----...'
+  })
+});
+const { sessionId, userId } = await registerResponse.json();
+
+// 2. Store encrypted private key
+await fetch('/api/auth/store-private-key', {
+  method: 'POST',
+  headers: { 'Content-Type': 'application/json' },
+  body: JSON.stringify({
+    sessionId,
+    encryptedPrivateKey: 'encrypted_key_data...'
+  })
+});
+
+// 3. Connect to message stream
+const eventSource = new EventSource(`/api/messages/stream?sessionId=${sessionId}`);
+eventSource.onmessage = (event) => {
+  const data = JSON.parse(event.data);
+  console.log('Received:', data);
+};
+
+// 4. Send message
+await fetch('/api/messages/send', {
+  method: 'POST',
+  headers: { 'Content-Type': 'application/json' },
+  body: JSON.stringify({
+    sessionId,
+    toUsername: 'bob',
+    content: 'encrypted_message_content',
+    encrypted: true
+  })
+});
+```
+
+### Webhook Integration Example
+
+```javascript
+// Send message to external webhook
+await fetch('/api/send', {
+  method: 'POST',
+  headers: { 'Content-Type': 'application/json' },
+  body: JSON.stringify({
+    webhookUrl: 'https://example.com/webhook',
+    message: 'Hello from Retro Messenger!',
+    sender: 'RetroBot',
+    metadata: { priority: 'high' }
+  })
+});
+
+// Receive webhook (external service calling your endpoint)
+await fetch('/api/webhook', {
+  method: 'POST',
+  headers: {
+    'Content-Type': 'application/json',
+    'Authorization': 'Bearer your_secret_token'
+  },
+  body: JSON.stringify({
+    message: 'Incoming webhook message',
+    sender: 'ExternalService',
+    timestamp: Date.now()
+  })
+});
+```
+
+---
+
+## Testing
+
+### Manual Testing with cURL
+
+```bash
+# Register user
+curl -X POST http://localhost:3001/api/auth/register \
+  -H "Content-Type: application/json" \
+  -d '{"username":"testuser","password":"test123","publicKey":"test_key"}'
+
+# Login
+curl -X POST http://localhost:3001/api/auth/login \
+  -H "Content-Type: application/json" \
+  -d '{"username":"testuser","password":"test123"}'
+
+# Send webhook
+curl -X POST http://localhost:3001/api/webhook \
+  -H "Content-Type: application/json" \
+  -H "Authorization: Bearer your_token" \
+  -d '{"message":"Test message","sender":"curl"}'
+```
+
+### Automated Testing
+
+See `server/test/` directory for comprehensive test suites using Supertest.
+
+---
+
+## Changelog
+
+### Version 1.0.0 (Current)
+- Initial API implementation
+- User authentication with E2EE support
+- Real-time messaging via SSE
+- Webhook integration with retry logic
+- Input validation and sanitization
+
+---
+
+## Support
+
+For issues, questions, or contributions, please refer to the project repository or contact the development team.
+
+**Project**: Retro Messenger  
+**Hackathon**: Code with Kiro - Kiroween 2025  
+**Documentation Version**: 1.0.0  
+**Last Updated**: 2025-11-16

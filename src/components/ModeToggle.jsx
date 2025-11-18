@@ -11,11 +11,6 @@ const ModeToggle = () => {
   const { preferences, setMode } = useConfig();
   const currentMode = preferences.mode;
 
-  const _handleToggle = () => {
-    const newMode = currentMode === 'pager' ? 'fax' : 'pager';
-    setMode(newMode);
-  };
-
   return (
     <div className="ModeToggle">
       <button
@@ -24,7 +19,7 @@ const ModeToggle = () => {
         aria-label="Switch to pager mode"
         aria-pressed={currentMode === 'pager'}
       >
-        Pager
+        📟 Pager Mode
       </button>
       <button
         className={`ModeToggle__button ${currentMode === 'fax' ? 'is-active' : ''}`}
@@ -32,16 +27,11 @@ const ModeToggle = () => {
         aria-label="Switch to fax mode"
         aria-pressed={currentMode === 'fax'}
       >
-        Fax
+        📠 Fax Mode
       </button>
-      <div 
-        className="ModeToggle__slider"
-        style={{
-          transform: currentMode === 'fax' ? 'translateX(100%)' : 'translateX(0)'
-        }}
-      />
     </div>
   );
 };
 
-export default ModeToggle;
+// Memoize to prevent unnecessary re-renders when parent re-renders
+export default React.memo(ModeToggle);
