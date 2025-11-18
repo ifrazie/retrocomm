@@ -2,6 +2,8 @@
  * LocalStorage helper utilities for configuration and message persistence
  */
 
+import { logger } from './logger.js';
+
 const STORAGE_KEYS = {
   CONFIG: 'retro_messenger_config',
   MESSAGES: 'retro_messenger_messages',
@@ -20,7 +22,7 @@ export const getItem = (key, defaultValue = null) => {
     const item = localStorage.getItem(key);
     return item ? JSON.parse(item) : defaultValue;
   } catch (error) {
-    console.error(`Error reading from localStorage (${key}):`, error);
+    logger.error(`Error reading from localStorage (${key}):`, error);
     return defaultValue;
   }
 };
@@ -37,7 +39,7 @@ export const setItem = (key, value) => {
     localStorage.setItem(key, JSON.stringify(value));
     return true;
   } catch (error) {
-    console.error(`Error writing to localStorage (${key}):`, error);
+    logger.error(`Error writing to localStorage (${key}):`, error);
     return false;
   }
 };
@@ -53,7 +55,7 @@ export const removeItem = (key) => {
     localStorage.removeItem(key);
     return true;
   } catch (error) {
-    console.error(`Error removing from localStorage (${key}):`, error);
+    logger.error(`Error removing from localStorage (${key}):`, error);
     return false;
   }
 };
@@ -177,7 +179,7 @@ export const clearAllData = () => {
     removeItem(STORAGE_KEYS.PREFERENCES);
     return true;
   } catch (error) {
-    console.error('Error clearing all data:', error);
+    logger.error('Error clearing all data:', error);
     return false;
   }
 };

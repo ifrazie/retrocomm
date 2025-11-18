@@ -37,6 +37,7 @@ function App() {
     const [inputMessage, setInputMessage] = useState('');
     const [webhookStatus, setWebhookStatus] = useState('connected');
     const [isTyping, setIsTyping] = useState(false);
+    const [isSending, setIsSending] = useState(false);
     const [hasNewMessage, setHasNewMessage] = useState(false);
     const [showSettings, setShowSettings] = useState(false);
     const [toast, setToast] = useState(null);
@@ -233,7 +234,13 @@ function App() {
             };
 
             document.addEventListener('keydown', handleTab);
-            return () => document.removeEventListener('keydown', handleTab);
+            return () => {
+                document.removeEventListener('keydown', handleTab);
+                // Also restore focus if unmounting while modal is open
+                if (modalTriggerRef.current) {
+                    modalTriggerRef.current.focus();
+                }
+            };
         } else if (modalTriggerRef.current) {
             // Return focus to the element that opened the modal
             modalTriggerRef.current.focus();
@@ -277,6 +284,9 @@ function App() {
     }, [generateResponse]);
 
     const handleSendMessage = useCallback(async () => {
+        // Prevent multiple simultaneous sends
+        if (isSending) return;
+        
         if (!inputMessage.trim()) {
             showToast('Please enter a message', 'error');
             return;
@@ -286,6 +296,8 @@ function App() {
             showToast('Please select a recipient', 'error');
             return;
         }
+        
+        setIsSending(true);
 
         const messageContent = inputMessage;
         const tempId = generateMessageId();
@@ -313,6 +325,7 @@ function App() {
                     msg.id === tempId ? { ...msg, status: 'delivered' } : msg
                 ));
                 setWebhookStatus('connected');
+                setIsSending(false);
                 handleChatbotResponse(messageContent);
             }, WEBHOOK_DELAY_MS);
         } else {
@@ -333,6 +346,7 @@ function App() {
                     } : msg
                 ));
                 setWebhookStatus('connected');
+                setIsSending(false);
                 showToast(`Message sent to ${selectedRecipient}!`, 'success', 2000);
             } catch (error) {
                 logger.error('Failed to send message:', error);
@@ -340,10 +354,11 @@ function App() {
                     msg.id === tempId ? { ...msg, status: 'failed' } : msg
                 ));
                 setWebhookStatus('connected');
+                setIsSending(false);
                 showToast(error.message || 'Failed to send message', 'error');
             }
         }
-    }, [inputMessage, selectedRecipient, showToast, handleChatbotResponse]);
+    }, [inputMessage, selectedRecipient, showToast, handleChatbotResponse, isSending]);
 
     const handleClearMessages = useCallback(() => {
         setMessages([]);

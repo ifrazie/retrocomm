@@ -215,7 +215,9 @@ const PagerInterface = () => {
       </div>
 
       <form className="PagerInterface__input-form" onSubmit={handleSubmit}>
+        <label htmlFor="pager-message-input" className="sr-only">Type message</label>
         <input
+          id="pager-message-input"
           type="text"
           className="PagerInterface__input"
           value={inputValue}
@@ -223,6 +225,7 @@ const PagerInterface = () => {
           placeholder="Type message..."
           maxLength={MAX_PAGER_MESSAGE_LENGTH}
           disabled={isSending}
+          aria-label="Message input"
         />
         <button 
           type="submit" 

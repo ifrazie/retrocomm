@@ -366,13 +366,16 @@ const FaxInterface = () => {
       </div>
 
       <form className="FaxInterface__input-form" onSubmit={handleSubmit}>
+        <label htmlFor="fax-message-input" className="sr-only">Type message to send</label>
         <input
+          id="fax-message-input"
           type="text"
           className="FaxInterface__input"
           value={inputValue}
           onChange={handleInputChange}
           placeholder="Type message to send..."
           disabled={isSending}
+          aria-label="Fax message input"
         />
         <button 
           type="submit" 
@@ -393,7 +396,11 @@ const FaxInterface = () => {
       {selectedFax && (
         <div className="FaxInterface__modal" onClick={handleCloseModal}>
           <div className="FaxInterface__modal-content" onClick={(e) => e.stopPropagation()}>
-            <button className="FaxInterface__modal-close" onClick={handleCloseModal}>
+            <button 
+              className="FaxInterface__modal-close" 
+              onClick={handleCloseModal}
+              aria-label="Close fax preview"
+            >
               ×
             </button>
             {selectedFax.isFallback ? (

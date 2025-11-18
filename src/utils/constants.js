@@ -88,6 +88,12 @@ export const MAX_USERNAME_LENGTH = 20;
  */
 export const FAX_ANIMATION_DURATION_MS = 2500;
 
+/**
+ * SSE reconnection delay after connection error
+ * Prevents aggressive reconnection attempts while allowing recovery
+ */
+export const SSE_RECONNECT_DELAY_MS = 5000;
+
 // ============================================================================
 // Retry Configuration
 // ============================================================================

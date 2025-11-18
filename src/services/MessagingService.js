@@ -1,6 +1,7 @@
 import { authService } from './AuthService.js';
 import { cryptoService } from './CryptoService.js';
 import { logger } from '../utils/logger.js';
+import { SSE_RECONNECT_DELAY_MS } from '../utils/constants.js';
 
 /**
  * Real-time messaging service using SSE with E2EE
@@ -42,7 +43,7 @@ class MessagingService {
         const data = JSON.parse(event.data);
         this.handleMessage(data);
       } catch (error) {
-        console.error('Error parsing SSE message:', error);
+        logger.error('Error parsing SSE message:', error);
       }
     };
 
@@ -51,13 +52,13 @@ class MessagingService {
       this.isConnected = false;
       this.notifyConnectionHandlers(false);
       
-      // Auto-reconnect after 5 seconds
+      // Auto-reconnect after delay
       setTimeout(() => {
         if (authService.isAuthenticated()) {
           logger.info('Attempting to reconnect...');
           this.connect();
         }
-      }, 5000);
+      }, SSE_RECONNECT_DELAY_MS);
     };
   }
 
@@ -276,7 +277,7 @@ class MessagingService {
       const data = await response.json();
       return data;
     } catch (error) {
-      console.error('Mark as read error:', error);
+      logger.error('Mark as read error:', error);
       throw error;
     }
   }

@@ -1,5 +1,6 @@
 import { useState, useEffect, useCallback } from 'react';
 import { llmChatbot } from '../services/LLMChatbotService';
+import { logger } from '../utils/logger';
 
 /**
  * React hook for using the LLM chatbot service
@@ -43,7 +44,7 @@ export function useLLMChatbot(mode = 'pager') {
       const response = await llmChatbot.generateResponse(userMessage);
       return response;
     } catch (error) {
-      console.error('Error generating response:', error);
+      logger.error('Error generating response:', error);
       return '[ERROR] Failed to generate response. Please try again.';
     } finally {
       setIsGenerating(false);

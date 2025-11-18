@@ -11,11 +11,6 @@ const ModeToggle = () => {
   const { preferences, setMode } = useConfig();
   const currentMode = preferences.mode;
 
-  const _handleToggle = () => {
-    const newMode = currentMode === 'pager' ? 'fax' : 'pager';
-    setMode(newMode);
-  };
-
   return (
     <div className="ModeToggle">
       <button

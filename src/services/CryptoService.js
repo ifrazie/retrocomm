@@ -2,6 +2,9 @@
  * End-to-End Encryption Service using Web Crypto API
  * Implements RSA-OAEP for key exchange and AES-GCM for message encryption
  */
+
+import { logger } from '../utils/logger.js';
+
 class CryptoService {
   constructor() {
     this.keyPair = null;
@@ -27,7 +30,7 @@ class CryptoService {
       
       return this.keyPair;
     } catch (error) {
-      console.error('Failed to generate key pair:', error);
+      logger.error('Failed to generate key pair:', error);
       throw new Error('Key generation failed');
     }
   }
@@ -49,7 +52,7 @@ class CryptoService {
       );
       return exportedAsBase64;
     } catch (error) {
-      console.error('Failed to export public key:', error);
+      logger.error('Failed to export public key:', error);
       throw error;
     }
   }
@@ -80,7 +83,7 @@ class CryptoService {
 
       return publicKey;
     } catch (error) {
-      console.error('Failed to import public key:', error);
+      logger.error('Failed to import public key:', error);
       throw error;
     }
   }
@@ -123,7 +126,7 @@ class CryptoService {
       // Convert to base64
       return btoa(String.fromCharCode(...combined));
     } catch (error) {
-      console.error('Failed to export encrypted private key:', error);
+      logger.error('Failed to export encrypted private key:', error);
       throw error;
     }
   }
@@ -171,7 +174,7 @@ class CryptoService {
 
       return privateKey;
     } catch (error) {
-      console.error('Failed to import encrypted private key:', error);
+      logger.error('Failed to import encrypted private key:', error);
       throw new Error('Invalid password or corrupted key');
     }
   }
@@ -262,7 +265,7 @@ class CryptoService {
 
       return JSON.stringify(combined);
     } catch (error) {
-      console.error('Failed to encrypt message:', error);
+      logger.error('Failed to encrypt message:', error);
       throw error;
     }
   }
@@ -311,7 +314,7 @@ class CryptoService {
       const decoder = new TextDecoder();
       return decoder.decode(decryptedBuffer);
     } catch (error) {
-      console.error('Failed to decrypt message:', error);
+      logger.error('Failed to decrypt message:', error);
       throw new Error('Decryption failed');
     }
   }
@@ -326,7 +329,7 @@ class CryptoService {
       const publicKey = await this.importPublicKey(publicKeyBase64);
       this.publicKeys.set(username, publicKey);
     } catch (error) {
-      console.error(`Failed to store public key for ${username}:`, error);
+      logger.error(`Failed to store public key for ${username}:`, error);
       throw error;
     }
   }

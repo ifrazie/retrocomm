@@ -7,6 +7,7 @@ import {
     MODE_FAX
 } from '../utils/constants.js';
 import { cleanLLMResponse } from '../utils/cleanLLMResponse.js';
+import { logger } from '../utils/logger.js';
 
 // Check if we're in development mode for logging
 const isDevelopment = import.meta.env.DEV;
@@ -30,29 +31,38 @@ class LLMChatbotService {
   async connect() {
     try {
       if (isDevelopment) {
-        console.log('🔌 Attempting to connect to LM Studio...');
+        logger.info('🔌 Attempting to connect to LM Studio...');
       }
       
-      // Use WebSocket URL for LM Studio connection
+      // LM Studio SDK requires WebSocket protocol (ws:// or wss://)
       // Convert http:// to ws:// or https:// to wss://
       const protocol = window.location.protocol === 'https:' ? 'wss:' : 'ws:';
       const baseUrl = `${protocol}//${window.location.host}/lmstudio`;
       
       if (isDevelopment) {
-        console.log('📍 Using base URL:', baseUrl);
+        logger.info('📍 Using base URL:', baseUrl);
+        logger.info('📍 Protocol:', protocol);
       }
       
       this.client = new LMStudioClient({ baseUrl });
       
-      // First, try to list loaded models to verify connection
       if (isDevelopment) {
-        console.log('🔍 Checking for loaded models...');
+        logger.info('✅ LMStudioClient created successfully');
+        logger.info('🔍 Checking for loaded models...');
       }
       
-      const loadedModels = await this.client.llm.listLoaded();
+      // Add timeout to prevent hanging
+      const timeoutPromise = new Promise((_, reject) => 
+        setTimeout(() => reject(new Error('Connection timeout after 10 seconds')), 10000)
+      );
+      
+      const loadedModels = await Promise.race([
+        this.client.llm.listLoaded(),
+        timeoutPromise
+      ]);
       
       if (isDevelopment) {
-        console.log('📊 Found', loadedModels.length, 'loaded model(s)');
+        logger.info('📊 Found', loadedModels.length, 'loaded model(s)');
       }
       
       if (loadedModels.length === 0) {
@@ -61,7 +71,7 @@ class LLMChatbotService {
       
       // Try to get the currently loaded model
       if (isDevelopment) {
-        console.log('🎯 Requesting model from LM Studio...');
+        logger.info('🎯 Requesting model from LM Studio...');
       }
       
       this.model = await this.client.llm.model();
@@ -69,8 +79,8 @@ class LLMChatbotService {
       this.isConnected = true;
       
       if (isDevelopment) {
-        console.log('✅ Connected to LM Studio');
-        console.log('🤖 Model loaded successfully');
+        logger.info('✅ Connected to LM Studio');
+        logger.info('🤖 Model loaded successfully');
       }
       
       // Initialize with system prompt
@@ -79,33 +89,33 @@ class LLMChatbotService {
       return true;
     } catch (error) {
       if (isDevelopment) {
-        console.error('❌ Failed to connect to LM Studio');
-        console.error('📝 Error message:', error.message);
-        console.error('🔍 Full error:', error);
+        logger.error('❌ Failed to connect to LM Studio');
+        logger.error('📝 Error message:', error.message);
+        logger.error('🔍 Full error:', error);
         
         // Provide helpful error messages
         if (error.message?.includes('No models are loaded')) {
-          console.error('');
-          console.error('💡 SOLUTION:');
-          console.error('   1. Open LM Studio');
-          console.error('   2. Go to "My Models" tab');
-          console.error('   3. Click "Load" on any model');
-          console.error('   4. Or use CLI: lms load <model-name>');
+          logger.error('');
+          logger.error('💡 SOLUTION:');
+          logger.error('   1. Open LM Studio');
+          logger.error('   2. Go to "My Models" tab');
+          logger.error('   3. Click "Load" on any model');
+          logger.error('   4. Or use CLI: lms load <model-name>');
         } else if (error.message?.includes('ECONNREFUSED') || error.message?.includes('Failed to fetch') || error.message?.includes('NetworkError')) {
-          console.error('');
-          console.error('💡 SOLUTION:');
-          console.error('   1. Make sure LM Studio is running');
-          console.error('   2. In LM Studio, go to Developer tab');
-          console.error('   3. Enable "Local Server"');
-          console.error('   4. Check it\'s running on port 1234');
-          console.error('   5. Restart your dev server (npm run dev)');
+          logger.error('');
+          logger.error('💡 SOLUTION:');
+          logger.error('   1. Make sure LM Studio is running');
+          logger.error('   2. In LM Studio, go to Developer tab');
+          logger.error('   3. Enable "Local Server"');
+          logger.error('   4. Check it\'s running on port 1234');
+          logger.error('   5. Restart your dev server (npm run dev)');
         } else {
-          console.error('');
-          console.error('💡 TROUBLESHOOTING:');
-          console.error('   • Is LM Studio running?');
-          console.error('   • Is a model loaded?');
-          console.error('   • Is the local server enabled?');
-          console.error('   • Try restarting both LM Studio and this app');
+          logger.error('');
+          logger.error('💡 TROUBLESHOOTING:');
+          logger.error('   • Is LM Studio running?');
+          logger.error('   • Is a model loaded?');
+          logger.error('   • Is the local server enabled?');
+          logger.error('   • Try restarting both LM Studio and this app');
         }
       }
       
@@ -180,7 +190,7 @@ Current device mode: ${this.currentMode.toUpperCase()}`;
         }
       } catch (streamError) {
         if (isDevelopment) {
-          console.error('Stream error during response generation:', streamError);
+          logger.error('Stream error during response generation:', streamError);
         }
         return this.getFallbackResponse(userMessage);
       }
@@ -193,9 +203,9 @@ Current device mode: ${this.currentMode.toUpperCase()}`;
         if (isDevelopment) {
           // Log if tokens were removed (response changed after cleaning)
           if (cleanedResponse !== responseContent.trim()) {
-            console.log('🧹 Special tokens removed from LLM response');
-            console.log('   Original length:', responseContent.trim().length);
-            console.log('   Cleaned length:', cleanedResponse.length);
+            logger.info('🧹 Special tokens removed from LLM response');
+            logger.info('   Original length:', responseContent.trim().length);
+            logger.info('   Cleaned length:', cleanedResponse.length);
           }
         }
       } catch (error) {
@@ -224,7 +234,7 @@ Current device mode: ${this.currentMode.toUpperCase()}`;
       return cleanedResponse;
     } catch (error) {
       if (isDevelopment) {
-        console.error('Error generating LLM response:', error);
+        logger.error('Error generating LLM response:', error);
       }
       return this.getFallbackResponse(userMessage);
     }
@@ -289,20 +299,20 @@ Current device mode: ${this.currentMode.toUpperCase()}`;
       const models = await testClient.llm.listLoaded();
       
       if (isDevelopment) {
-        console.log('✓ LM Studio is reachable');
-        console.log('Loaded models:', models.length);
+        logger.info('✓ LM Studio is reachable');
+        logger.info('Loaded models:', models.length);
       }
       
       if (models.length === 0) {
         if (isDevelopment) {
-          console.warn('⚠ No models are currently loaded in LM Studio');
+          logger.warn('⚠ No models are currently loaded in LM Studio');
         }
         return false;
       }
       return true;
     } catch (error) {
       if (isDevelopment) {
-        console.error('✗ Cannot reach LM Studio:', error.message);
+        logger.error('✗ Cannot reach LM Studio:', error.message);
       }
       return false;
     }
@@ -314,11 +324,11 @@ Current device mode: ${this.currentMode.toUpperCase()}`;
   async disconnect() {
     if (this.model) {
       try {
-        // Optionally unload the model if needed
-        // await this.model.unload();
+        // Note: We don't unload the model to preserve it for other sessions
+        // If needed in the future, uncomment: await this.model.unload();
       } catch (error) {
         if (isDevelopment) {
-          console.error('Error disconnecting:', error);
+          logger.error('Error disconnecting:', error);
         }
       }
     }

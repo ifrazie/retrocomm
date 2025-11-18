@@ -2,6 +2,9 @@
  * Generate and play a beep sound using Web Audio API
  * Creates a classic pager-style beep tone
  */
+
+import { logger } from './logger.js';
+
 export const playBeep = () => {
   try {
     // Create audio context
@@ -37,6 +40,6 @@ export const playBeep = () => {
       audioContext.close();
     };
   } catch (error) {
-    console.error('Failed to play beep sound:', error);
+    logger.error('Failed to play beep sound:', error);
   }
 };
