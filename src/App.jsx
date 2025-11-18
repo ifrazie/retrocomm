@@ -8,6 +8,8 @@ import LoginScreen from './components/LoginScreen';
 import UserSelector from './components/UserSelector';
 import PagerView from './components/PagerView';
 import FaxView from './components/FaxView';
+import ErrorBoundary from './components/ErrorBoundary';
+import SettingsModal from './components/SettingsModal';
 import { authService } from './services/AuthService';
 import { messagingService } from './services/MessagingService';
 import './styles/toast.css';
@@ -71,8 +73,7 @@ function App() {
         };
 
         checkSession();
-        // eslint-disable-next-line react-hooks/exhaustive-deps
-    }, []); // Only run on mount
+    }, [showToast]); // showToast is memoized with useCallback, so this is safe
 
     // Listen for incoming messages
     useEffect(() => {
@@ -421,6 +422,15 @@ function App() {
         return { startIndex, total: messages.length };
     }, [messages.length]);
 
+    // Memoize settings modal props to prevent unnecessary re-renders
+    const settingsModalProps = useMemo(() => ({
+        showSettings,
+        currentUser,
+        llmConnected,
+        llmInitializing,
+        webhookConfig
+    }), [showSettings, currentUser, llmConnected, llmInitializing, webhookConfig]);
+
     // Show login screen if not authenticated
     if (!isAuthenticated) {
         return <LoginScreen onLogin={handleLogin} />;
@@ -453,53 +463,55 @@ function App() {
                     </button>
                 </div>
 
-                {mode === MODE_PAGER ? (
-                    <PagerView
-                        messages={messages}
-                        recentPagerMessages={recentPagerMessages}
-                        messageNumberingInfo={messageNumberingInfo}
-                        isTyping={isTyping}
-                        llmGenerating={llmGenerating}
-                        hasNewMessage={hasNewMessage}
-                        webhookStatus={webhookStatus}
-                        currentUser={currentUser}
-                        llmInitializing={llmInitializing}
-                        llmConnected={llmConnected}
-                        inputMessage={inputMessage}
-                        selectedRecipient={selectedRecipient}
-                        messagesEndRef={messagesEndRef}
-                        onScrollToTop={handleScrollToTop}
-                        onModeChangeToFax={handleModeChangeToFax}
-                        onScrollToBottom={handleScrollToBottom}
-                        onClearMessages={handleClearMessages}
-                        onOpenSettings={handleOpenSettings}
-                        onOpenUserSelector={handleOpenUserSelector}
-                        onInputChange={handleInputChange}
-                        onKeyPress={handleKeyPress}
-                        onSendMessage={handleSendMessage}
-                    />
-                ) : (
-                    <FaxView
-                        messages={messages}
-                        isTyping={isTyping}
-                        llmGenerating={llmGenerating}
-                        hasNewMessage={hasNewMessage}
-                        webhookStatus={webhookStatus}
-                        currentUser={currentUser}
-                        llmInitializing={llmInitializing}
-                        llmConnected={llmConnected}
-                        inputMessage={inputMessage}
-                        selectedRecipient={selectedRecipient}
-                        messagesEndRef={messagesEndRef}
-                        onModeChangeToPager={handleModeChangeToPager}
-                        onClearMessages={handleClearMessages}
-                        onOpenSettings={handleOpenSettings}
-                        onOpenUserSelector={handleOpenUserSelector}
-                        onInputChange={handleInputChange}
-                        onKeyPress={handleKeyPress}
-                        onSendMessage={handleSendMessage}
-                    />
-                )}
+                <ErrorBoundary>
+                    {mode === MODE_PAGER ? (
+                        <PagerView
+                            messages={messages}
+                            recentPagerMessages={recentPagerMessages}
+                            messageNumberingInfo={messageNumberingInfo}
+                            isTyping={isTyping}
+                            llmGenerating={llmGenerating}
+                            hasNewMessage={hasNewMessage}
+                            webhookStatus={webhookStatus}
+                            currentUser={currentUser}
+                            llmInitializing={llmInitializing}
+                            llmConnected={llmConnected}
+                            inputMessage={inputMessage}
+                            selectedRecipient={selectedRecipient}
+                            messagesEndRef={messagesEndRef}
+                            onScrollToTop={handleScrollToTop}
+                            onModeChangeToFax={handleModeChangeToFax}
+                            onScrollToBottom={handleScrollToBottom}
+                            onClearMessages={handleClearMessages}
+                            onOpenSettings={handleOpenSettings}
+                            onOpenUserSelector={handleOpenUserSelector}
+                            onInputChange={handleInputChange}
+                            onKeyPress={handleKeyPress}
+                            onSendMessage={handleSendMessage}
+                        />
+                    ) : (
+                        <FaxView
+                            messages={messages}
+                            isTyping={isTyping}
+                            llmGenerating={llmGenerating}
+                            hasNewMessage={hasNewMessage}
+                            webhookStatus={webhookStatus}
+                            currentUser={currentUser}
+                            llmInitializing={llmInitializing}
+                            llmConnected={llmConnected}
+                            inputMessage={inputMessage}
+                            selectedRecipient={selectedRecipient}
+                            messagesEndRef={messagesEndRef}
+                            onModeChangeToPager={handleModeChangeToPager}
+                            onClearMessages={handleClearMessages}
+                            onOpenSettings={handleOpenSettings}
+                            onOpenUserSelector={handleOpenUserSelector}
+                            onInputChange={handleInputChange}
+                            onKeyPress={handleKeyPress}
+                            onSendMessage={handleSendMessage}
+                        />
+                    )}
+                </ErrorBoundary>
             </div>
 
             <div className="powered-by">
@@ -515,146 +527,14 @@ function App() {
                 />
             )}
 
-            {showSettings && (
-                <div 
-                    className="settings-modal-overlay" 
-                    onClick={handleCloseSettings}
-                    role="dialog"
-                    aria-modal="true"
-                    aria-labelledby="settings-modal-title"
-                >
-                    <div className="settings-modal" onClick={(e) => e.stopPropagation()}>
-                        <div className="settings-header">
-                            <h2 id="settings-modal-title">⚙ WEBHOOK CONFIGURATION</h2>
-                            <button 
-                                className="settings-close" 
-                                onClick={handleCloseSettings}
-                                aria-label="Close settings"
-                            >
-                                ×
-                            </button>
-                        </div>
-
-                        <form className="settings-form" onSubmit={handleSaveWebhookConfig}>
-                            <div className="settings-section">
-                                <h3>👤 User Status</h3>
-                                <div className="llm-status-display">
-                                    <div className="llm-status-indicator connected">
-                                        ✓ Logged in as: {currentUser?.username || 'Guest'}
-                                    </div>
-                                    <button
-                                        type="button"
-                                        className="settings-save-btn"
-                                        onClick={handleLogout}
-                                        style={{ marginTop: '10px' }}
-                                    >
-                                        Logout
-                                    </button>
-                                </div>
-                            </div>
-
-                            <div className="settings-section">
-                                <h3>🤖 LLM Status</h3>
-                                <div className="llm-status-display">
-                                    <div className={`llm-status-indicator ${llmConnected ? 'connected' : 'disconnected'}`}>
-                                        {llmInitializing ? '⏳ Initializing...' : llmConnected ? '✓ Connected to LM Studio' : '✗ LM Studio Offline'}
-                                    </div>
-                                    {!llmConnected && !llmInitializing && (
-                                        <p className="settings-description" style={{color: '#ff6b6b'}}>
-                                            Start LM Studio and load a model to enable AI responses.
-                                            <br />
-                                            <a href="https://lmstudio.ai" target="_blank" rel="noopener noreferrer" style={{color: '#00ff41'}}>
-                                                Download LM Studio →
-                                            </a>
-                                        </p>
-                                    )}
-                                </div>
-                            </div>
-
-                            <div className="settings-section">
-                                <h3>Your Webhook Endpoint</h3>
-                                <p className="settings-description">
-                                    Use this URL to receive messages from external services
-                                </p>
-                                <div className="settings-endpoint">
-                                    <input
-                                        type="text"
-                                        className="settings-input"
-                                        value={`${window.location.origin}/api/webhook`}
-                                        readOnly
-                                    />
-                                    <button
-                                        type="button"
-                                        className="settings-copy-btn"
-                                        onClick={handleCopyWebhookUrl}
-                                    >
-                                        Copy
-                                    </button>
-                                </div>
-                            </div>
-
-                            <div className="settings-section">
-                                <label className="settings-label">
-                                    Outgoing Webhook URL
-                                </label>
-                                <input
-                                    type="text"
-                                    className="settings-input"
-                                    value={webhookConfig.outgoingUrl}
-                                    onChange={(e) => setWebhookConfig({...webhookConfig, outgoingUrl: e.target.value})}
-                                    placeholder="https://example.com/receive"
-                                />
-                                <p className="settings-description">
-                                    URL where your messages will be sent
-                                </p>
-                            </div>
-
-                            <div className="settings-section">
-                                <h3>Authentication</h3>
-                                <label className="settings-checkbox">
-                                    <input
-                                        type="checkbox"
-                                        checked={webhookConfig.enableAuth}
-                                        onChange={(e) => setWebhookConfig({...webhookConfig, enableAuth: e.target.checked})}
-                                    />
-                                    <span>Enable Authentication</span>
-                                </label>
-
-                                {webhookConfig.enableAuth && (
-                                    <div className="settings-auth-token">
-                                        <label className="settings-label">
-                                            Authentication Token
-                                        </label>
-                                        <input
-                                            type="password"
-                                            className="settings-input"
-                                            value={webhookConfig.authToken}
-                                            onChange={(e) => setWebhookConfig({...webhookConfig, authToken: e.target.value})}
-                                            placeholder="Enter your auth token"
-                                        />
-                                        <p className="settings-description">
-                                            Bearer token for webhook authentication
-                                        </p>
-                                    </div>
-                                )}
-                            </div>
-
-                            <div className="settings-actions">
-                                <button type="submit" className="settings-save-btn">
-                                    Save Configuration
-                                </button>
-                                <button
-                                    type="button"
-                                    className="settings-cancel-btn"
-                                    onClick={handleCloseSettings}
-                                >
-                                    Cancel
-                                </button>
-                            </div>
-                        </form>
-                    </div>
-                </div>
-            )}
+            <SettingsModal
+                {...settingsModalProps}
+                onClose={handleCloseSettings}
+                setWebhookConfig={setWebhookConfig}
+                onLogout={handleLogout}
+                onSaveWebhookConfig={handleSaveWebhookConfig}
+                onCopyWebhookUrl={handleCopyWebhookUrl}
+            />
 
             {showUserSelector && (
                 <UserSelector

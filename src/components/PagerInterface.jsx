@@ -64,11 +64,20 @@ const PagerInterface = () => {
 
   // Play beep sound when new messages arrive
   useEffect(() => {
+    let isMounted = true;
+    
     if (messages.length > previousMessageCount.current && preferences.soundEnabled) {
       playBeep();
     }
-    previousMessageCount.current = messages.length;
-    scrollToBottom();
+    
+    if (isMounted) {
+      previousMessageCount.current = messages.length;
+      scrollToBottom();
+    }
+    
+    return () => {
+      isMounted = false;
+    };
   }, [messages, preferences.soundEnabled]);
 
   const handleInputChange = (e) => {

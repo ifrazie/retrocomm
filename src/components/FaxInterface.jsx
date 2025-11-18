@@ -80,28 +80,8 @@ const FaxInterface = () => {
   // Note: Blob URL cleanup is now handled directly in the state setter
   // to prevent memory leaks more efficiently
 
-  // Process new messages and render as fax documents
-  useEffect(() => {
-    const processNewMessages = async () => {
-      if (messages.length > previousMessageCount.current) {
-        const newMessages = messages.slice(previousMessageCount.current);
-        
-        for (const message of newMessages) {
-          await renderNewFax(message);
-        }
-        
-        previousMessageCount.current = messages.length;
-      }
-    };
-
-    processNewMessages();
-  }, [messages]);
-
-  /**
-   * Render a new fax document with animation
-   * @param {import('../types/index.js').Message} message - Message to render
-   */
-  const renderNewFax = async (message) => {
+  // Memoize renderNewFax to avoid dependency issues
+  const renderNewFax = useCallback(async (message) => {
     if (!canvasRef.current) return;
 
     setIsTransmitting(true);
@@ -203,7 +183,26 @@ const FaxInterface = () => {
         return trimmed;
       });
     }
-  };
+  }, [renderingError]);
+
+  // Process new messages and render as fax documents
+  useEffect(() => {
+    const processNewMessages = async () => {
+      if (messages.length > previousMessageCount.current) {
+        const newMessages = messages.slice(previousMessageCount.current);
+        
+        for (const message of newMessages) {
+          await renderNewFax(message);
+        }
+        
+        previousMessageCount.current = messages.length;
+      }
+    };
+
+    processNewMessages();
+  }, [messages, renderNewFax]);
+
+
 
   const handleInputChange = (e) => {
     setInputValue(e.target.value);

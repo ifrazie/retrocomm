@@ -1,4 +1,4 @@
-import { LMStudioClient } from "@lmstudio/sdk";
+import { loadLMStudioClient } from './LLMStudioLoader.js';
 import {
     MAX_LLM_TOKENS,
     LLM_TEMPERATURE,
@@ -33,6 +33,9 @@ class LLMChatbotService {
       if (isDevelopment) {
         logger.info('🔌 Attempting to connect to LM Studio...');
       }
+      
+      // Lazy load LM Studio SDK to reduce initial bundle size
+      const LMStudioClient = await loadLMStudioClient();
       
       // LM Studio SDK requires WebSocket protocol (ws:// or wss://)
       // Convert http:// to ws:// or https:// to wss://
@@ -211,8 +214,8 @@ Current device mode: ${this.currentMode.toUpperCase()}`;
       } catch (error) {
         // Graceful degradation: if filtering fails, return original response
         if (isDevelopment) {
-          console.error('⚠️ Error cleaning LLM response:', error);
-          console.error('   Returning unfiltered response');
+          logger.error('⚠️ Error cleaning LLM response:', error);
+          logger.error('   Returning unfiltered response');
         }
         cleanedResponse = responseContent.trim();
       }
@@ -269,8 +272,8 @@ Current device mode: ${this.currentMode.toUpperCase()}`;
     } catch (error) {
       // Graceful degradation: if filtering fails, return original response
       if (isDevelopment) {
-        console.error('⚠️ Error cleaning fallback response:', error);
-        console.error('   Returning unfiltered response');
+        logger.error('⚠️ Error cleaning fallback response:', error);
+        logger.error('   Returning unfiltered response');
       }
       return response;
     }
@@ -295,6 +298,7 @@ Current device mode: ${this.currentMode.toUpperCase()}`;
    */
   async testConnection() {
     try {
+      const LMStudioClient = await loadLMStudioClient();
       const testClient = new LMStudioClient();
       const models = await testClient.llm.listLoaded();
       
