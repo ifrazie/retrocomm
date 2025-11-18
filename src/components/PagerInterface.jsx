@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useRef } from 'react';
+import React, { useState, useEffect, useRef, useMemo } from 'react';
 import { useMessages } from '../contexts/MessageContext.jsx';
 import { useConfig } from '../contexts/ConfigContext.jsx';
 import { playBeep } from '../utils/beep.js';
@@ -51,6 +51,12 @@ const PagerInterface = () => {
   const messagesEndRef = useRef(null);
   const previousMessageCount = useRef(messages.length);
 
+  // Memoize displayed messages to avoid recalculating on every render
+  const displayedMessages = useMemo(() => 
+    messages.slice(-MAX_DISPLAY_MESSAGES), 
+    [messages]
+  );
+
   // Auto-scroll to bottom when new messages arrive
   const scrollToBottom = () => {
     messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
@@ -65,11 +71,11 @@ const PagerInterface = () => {
     scrollToBottom();
   }, [messages, preferences.soundEnabled]);
 
-  const _handleInputChange = (e) => {
+  const handleInputChange = (e) => {
     setInputValue(e.target.value);
   };
 
-  const _sendMessage = async (messageContent) => {
+  const sendMessage = async (messageContent) => {
     const payload = {
       message: messageContent,
       timestamp: Date.now(),
@@ -101,7 +107,7 @@ const PagerInterface = () => {
     );
   };
 
-  const _handleSubmit = async (e) => {
+  const handleSubmit = async (e) => {
     e.preventDefault();
     
     if (!inputValue.trim() || isSending) {
@@ -123,7 +129,7 @@ const PagerInterface = () => {
     setIsSending(true);
 
     try {
-      await _sendMessage(messageToSend);
+      await sendMessage(messageToSend);
 
       // Clear input after successful send
       setInputValue('');
@@ -143,12 +149,12 @@ const PagerInterface = () => {
       setToast({
         message: `Failed to send message: ${error.message}`,
         type: 'error',
-        onRetry: () => _handleRetry()
+        onRetry: () => handleRetry()
       });
     }
   };
 
-  const _handleRetry = async () => {
+  const handleRetry = async () => {
     if (!pendingMessage || isSending) return;
 
     // Close current toast
@@ -156,7 +162,7 @@ const PagerInterface = () => {
     setIsSending(true);
 
     try {
-      await _sendMessage(pendingMessage);
+      await sendMessage(pendingMessage);
 
       // Clear input and pending message after successful retry
       setInputValue('');
@@ -176,12 +182,12 @@ const PagerInterface = () => {
       setToast({
         message: `Failed to send message: ${error.message}`,
         type: 'error',
-        onRetry: () => _handleRetry()
+        onRetry: () => handleRetry()
       });
     }
   };
 
-  const _handleCloseToast = () => {
+  const handleCloseToast = () => {
     setToast(null);
   };
 
@@ -201,19 +207,19 @@ const PagerInterface = () => {
 
       <div className="PagerInterface__display">
         <div className="PagerInterface__messages">
-          {messages.slice(-MAX_DISPLAY_MESSAGES).map((message) => (
+          {displayedMessages.map((message) => (
             <MessageItem key={message.id} message={message} />
           ))}
           <div ref={messagesEndRef} />
         </div>
       </div>
 
-      <form className="PagerInterface__input-form" onSubmit={_handleSubmit}>
+      <form className="PagerInterface__input-form" onSubmit={handleSubmit}>
         <input
           type="text"
           className="PagerInterface__input"
           value={inputValue}
-          onChange={_handleInputChange}
+          onChange={handleInputChange}
           placeholder="Type message..."
           maxLength={MAX_PAGER_MESSAGE_LENGTH}
           disabled={isSending}
@@ -239,11 +245,11 @@ const PagerInterface = () => {
           message={toast.message}
           type={toast.type}
           onRetry={toast.onRetry}
-          onClose={_handleCloseToast}
+          onClose={handleCloseToast}
         />
       )}
     </div>
   );
 };
 
-export default PagerInterface;
+export default React.memo(PagerInterface);

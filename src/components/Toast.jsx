@@ -1,4 +1,5 @@
 import React, { useEffect } from 'react';
+import PropTypes from 'prop-types';
 import '../styles/toast.css';
 
 /**
@@ -34,6 +35,13 @@ const Toast = ({ message, type = 'info', duration = 3000, onClose }) => {
       <span className="toast-message">{message}</span>
     </div>
   );
+};
+
+Toast.propTypes = {
+  message: PropTypes.string.isRequired,
+  type: PropTypes.oneOf(['success', 'error', 'info', 'warning']),
+  duration: PropTypes.number,
+  onClose: PropTypes.func.isRequired
 };
 
 // Memoize to prevent unnecessary re-renders when parent re-renders

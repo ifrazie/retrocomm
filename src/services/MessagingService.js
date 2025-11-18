@@ -1,5 +1,6 @@
 import { authService } from './AuthService.js';
 import { cryptoService } from './CryptoService.js';
+import { logger } from '../utils/logger.js';
 
 /**
  * Real-time messaging service using SSE with E2EE
@@ -31,7 +32,7 @@ class MessagingService {
     );
 
     this.eventSource.onopen = () => {
-      console.log('✓ Connected to message stream');
+      logger.info('✓ Connected to message stream');
       this.isConnected = true;
       this.notifyConnectionHandlers(true);
     };
@@ -46,14 +47,14 @@ class MessagingService {
     };
 
     this.eventSource.onerror = (error) => {
-      console.error('SSE connection error:', error);
+      logger.error('SSE connection error:', error);
       this.isConnected = false;
       this.notifyConnectionHandlers(false);
       
       // Auto-reconnect after 5 seconds
       setTimeout(() => {
         if (authService.isAuthenticated()) {
-          console.log('Attempting to reconnect...');
+          logger.info('Attempting to reconnect...');
           this.connect();
         }
       }, 5000);
@@ -77,7 +78,7 @@ class MessagingService {
    */
   async handleMessage(data) {
     if (data.type === 'connected') {
-      console.log('Connected as:', data.username);
+      logger.info('Connected as:', data.username);
       return;
     }
 
@@ -89,7 +90,7 @@ class MessagingService {
           const decryptedContent = await cryptoService.decryptMessage(message.content);
           message = { ...message, content: decryptedContent, encrypted: false };
         } catch (error) {
-          console.error('Failed to decrypt message:', error);
+          logger.error('Failed to decrypt message:', error);
           
           // Provide helpful error message based on the error type
           let errorMessage = '[🔒 ENCRYPTED MESSAGE]';
@@ -145,7 +146,7 @@ class MessagingService {
       try {
         handler(message);
       } catch (error) {
-        console.error('Error in message handler:', error);
+        logger.error('Error in message handler:', error);
       }
     });
   }
@@ -158,7 +159,7 @@ class MessagingService {
       try {
         handler(connected);
       } catch (error) {
-        console.error('Error in connection handler:', error);
+        logger.error('Error in connection handler:', error);
       }
     });
   }
@@ -186,7 +187,7 @@ class MessagingService {
           messageContent = await cryptoService.encryptMessage(content, toUsername);
           isEncrypted = true;
         } catch (error) {
-          console.error('Encryption failed, sending unencrypted:', error);
+          logger.error('Encryption failed, sending unencrypted:', error);
           // Fall back to unencrypted if encryption fails
         }
       }
@@ -212,7 +213,7 @@ class MessagingService {
       const data = await response.json();
       return data;
     } catch (error) {
-      console.error('Send message error:', error);
+      logger.error('Send message error:', error);
       throw error;
     }
   }
@@ -240,7 +241,7 @@ class MessagingService {
       const data = await response.json();
       return data;
     } catch (error) {
-      console.error('Get inbox error:', error);
+      logger.error('Get inbox error:', error);
       throw error;
     }
   }

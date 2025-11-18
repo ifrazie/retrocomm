@@ -40,6 +40,11 @@ function App() {
     const [hasNewMessage, setHasNewMessage] = useState(false);
     const [showSettings, setShowSettings] = useState(false);
     const [toast, setToast] = useState(null);
+    const [webhookConfig, setWebhookConfig] = useState({
+        outgoingUrl: '',
+        enableAuth: false,
+        authToken: ''
+    });
     const messagesEndRef = useRef(null);
     const modalTriggerRef = useRef(null); // Store element that opened modal for focus return
     const copyTimerRef = useRef(null); // Store timer for cleanup
@@ -65,7 +70,8 @@ function App() {
         };
 
         checkSession();
-    }, [showToast]);
+        // eslint-disable-next-line react-hooks/exhaustive-deps
+    }, []); // Only run on mount
 
     // Listen for incoming messages
     useEffect(() => {
@@ -191,7 +197,7 @@ function App() {
         return () => document.removeEventListener('keydown', handleEscape);
     }, [showSettings]);
 
-    // Focus management for modal
+    // Focus management and trap for modal
     useEffect(() => {
         if (showSettings) {
             // Store the element that opened the modal
@@ -203,6 +209,31 @@ function App() {
                 const firstFocusable = modal?.querySelector('button, input, select, textarea, [tabindex]:not([tabindex="-1"])');
                 firstFocusable?.focus();
             }, 0);
+
+            // Focus trap: keep focus within modal
+            const handleTab = (e) => {
+                if (e.key !== 'Tab') return;
+
+                const modal = document.querySelector('.settings-modal');
+                if (!modal) return;
+
+                const focusableElements = modal.querySelectorAll(
+                    'button, input, select, textarea, [tabindex]:not([tabindex="-1"])'
+                );
+                const firstElement = focusableElements[0];
+                const lastElement = focusableElements[focusableElements.length - 1];
+
+                if (e.shiftKey && document.activeElement === firstElement) {
+                    e.preventDefault();
+                    lastElement.focus();
+                } else if (!e.shiftKey && document.activeElement === lastElement) {
+                    e.preventDefault();
+                    firstElement.focus();
+                }
+            };
+
+            document.addEventListener('keydown', handleTab);
+            return () => document.removeEventListener('keydown', handleTab);
         } else if (modalTriggerRef.current) {
             // Return focus to the element that opened the modal
             modalTriggerRef.current.focus();

@@ -77,6 +77,12 @@ export const TOAST_DURATION_MS = 3000;
 export const COPY_FEEDBACK_DURATION_MS = 2000;
 
 /**
+ * Maximum username length for registration
+ * Prevents excessively long usernames that break UI layout
+ */
+export const MAX_USERNAME_LENGTH = 20;
+
+/**
  * Duration of fax rendering animation
  * Simulates thermal printer line-by-line printing effect
  */

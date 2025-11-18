@@ -77,22 +77,8 @@ const FaxInterface = () => {
     };
   }, []);
 
-  // Cleanup blob URLs when archive is trimmed
-  useEffect(() => {
-    if (faxArchive.length > MAX_FAX_ARCHIVE) {
-      // Get the faxes that will be removed
-      const removedCount = faxArchive.length - MAX_FAX_ARCHIVE;
-      const removedFaxes = faxArchive.slice(0, removedCount);
-      
-      // Revoke blob URLs for removed faxes
-      removedFaxes.forEach(fax => {
-        if (fax.imageDataUrl?.startsWith('blob:')) {
-          URL.revokeObjectURL(fax.imageDataUrl);
-          blobUrlsRef.current.delete(fax.imageDataUrl);
-        }
-      });
-    }
-  }, [faxArchive]);
+  // Note: Blob URL cleanup is now handled directly in the state setter
+  // to prevent memory leaks more efficiently
 
   // Process new messages and render as fax documents
   useEffect(() => {
@@ -153,7 +139,20 @@ const FaxInterface = () => {
       // Add to archive (limit to MAX_FAX_ARCHIVE)
       setFaxArchive(prev => {
         const updated = [...prev, faxDoc];
-        return updated.slice(-MAX_FAX_ARCHIVE);
+        const trimmed = updated.slice(-MAX_FAX_ARCHIVE);
+        
+        // Revoke URLs for removed items immediately
+        if (updated.length > MAX_FAX_ARCHIVE) {
+          const removed = updated.slice(0, updated.length - MAX_FAX_ARCHIVE);
+          removed.forEach(fax => {
+            if (fax.imageDataUrl?.startsWith('blob:')) {
+              URL.revokeObjectURL(fax.imageDataUrl);
+              blobUrlsRef.current.delete(fax.imageDataUrl);
+            }
+          });
+        }
+        
+        return trimmed;
       });
 
       setIsTransmitting(false);
@@ -188,16 +187,29 @@ const FaxInterface = () => {
       // Add to archive (limit to MAX_FAX_ARCHIVE)
       setFaxArchive(prev => {
         const updated = [...prev, fallbackDoc];
-        return updated.slice(-MAX_FAX_ARCHIVE);
+        const trimmed = updated.slice(-MAX_FAX_ARCHIVE);
+        
+        // Revoke URLs for removed items immediately
+        if (updated.length > MAX_FAX_ARCHIVE) {
+          const removed = updated.slice(0, updated.length - MAX_FAX_ARCHIVE);
+          removed.forEach(fax => {
+            if (fax.imageDataUrl?.startsWith('blob:')) {
+              URL.revokeObjectURL(fax.imageDataUrl);
+              blobUrlsRef.current.delete(fax.imageDataUrl);
+            }
+          });
+        }
+        
+        return trimmed;
       });
     }
   };
 
-  const _handleInputChange = (e) => {
+  const handleInputChange = (e) => {
     setInputValue(e.target.value);
   };
 
-  const _sendMessage = async (messageContent) => {
+  const sendMessage = async (messageContent) => {
     const payload = {
       message: messageContent,
       timestamp: Date.now(),
@@ -229,7 +241,7 @@ const FaxInterface = () => {
     );
   };
 
-  const _handleSubmit = async (e) => {
+  const handleSubmit = async (e) => {
     e.preventDefault();
     
     if (!inputValue.trim() || isSending) {
@@ -251,7 +263,7 @@ const FaxInterface = () => {
     setIsSending(true);
 
     try {
-      await _sendMessage(messageToSend);
+      await sendMessage(messageToSend);
 
       // Clear input after successful send
       setInputValue('');
@@ -271,12 +283,12 @@ const FaxInterface = () => {
       setToast({
         message: `Failed to send fax: ${error.message}`,
         type: 'error',
-        onRetry: () => _handleRetry()
+        onRetry: () => handleRetry()
       });
     }
   };
 
-  const _handleRetry = async () => {
+  const handleRetry = async () => {
     if (!pendingMessage || isSending) return;
 
     // Close current toast
@@ -284,7 +296,7 @@ const FaxInterface = () => {
     setIsSending(true);
 
     try {
-      await _sendMessage(pendingMessage);
+      await sendMessage(pendingMessage);
 
       // Clear input and pending message after successful retry
       setInputValue('');
@@ -304,20 +316,20 @@ const FaxInterface = () => {
       setToast({
         message: `Failed to send fax: ${error.message}`,
         type: 'error',
-        onRetry: () => _handleRetry()
+        onRetry: () => handleRetry()
       });
     }
   };
 
-  const _handleCloseToast = () => {
+  const handleCloseToast = () => {
     setToast(null);
   };
 
-  const _handleFaxClick = (fax) => {
+  const handleFaxClick = (fax) => {
     setSelectedFax(fax);
   };
 
-  const _handleCloseModal = () => {
+  const handleCloseModal = () => {
     setSelectedFax(null);
   };
 
@@ -348,17 +360,17 @@ const FaxInterface = () => {
         )}
         <div className="FaxInterface__archive-grid">
           {faxArchive.slice().reverse().map((fax) => (
-            <FaxThumbnail key={fax.id} fax={fax} onClick={_handleFaxClick} />
+            <FaxThumbnail key={fax.id} fax={fax} onClick={handleFaxClick} />
           ))}
         </div>
       </div>
 
-      <form className="FaxInterface__input-form" onSubmit={_handleSubmit}>
+      <form className="FaxInterface__input-form" onSubmit={handleSubmit}>
         <input
           type="text"
           className="FaxInterface__input"
           value={inputValue}
-          onChange={_handleInputChange}
+          onChange={handleInputChange}
           placeholder="Type message to send..."
           disabled={isSending}
         />
@@ -379,9 +391,9 @@ const FaxInterface = () => {
       </form>
 
       {selectedFax && (
-        <div className="FaxInterface__modal" onClick={_handleCloseModal}>
+        <div className="FaxInterface__modal" onClick={handleCloseModal}>
           <div className="FaxInterface__modal-content" onClick={(e) => e.stopPropagation()}>
-            <button className="FaxInterface__modal-close" onClick={_handleCloseModal}>
+            <button className="FaxInterface__modal-close" onClick={handleCloseModal}>
               ×
             </button>
             {selectedFax.isFallback ? (
@@ -413,11 +425,11 @@ const FaxInterface = () => {
           message={toast.message}
           type={toast.type}
           onRetry={toast.onRetry}
-          onClose={_handleCloseToast}
+          onClose={handleCloseToast}
         />
       )}
     </div>
   );
 };
 
-export default FaxInterface;
+export default React.memo(FaxInterface);

@@ -1,5 +1,6 @@
 import React, { useState } from 'react';
 import PropTypes from 'prop-types';
+import { MAX_USERNAME_LENGTH } from '../utils/constants';
 import './LoginScreen.css';
 
 function LoginScreen({ onLogin }) {
@@ -89,7 +90,7 @@ function LoginScreen({ onLogin }) {
                   placeholder="Enter your handle..."
                   disabled={isLoading}
                   autoFocus
-                  maxLength={20}
+                  maxLength={MAX_USERNAME_LENGTH}
                 />
               </div>
 

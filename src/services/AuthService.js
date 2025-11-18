@@ -1,4 +1,5 @@
 import { cryptoService } from './CryptoService.js';
+import { logger } from '../utils/logger.js';
 
 /**
  * Authentication service for multiuser support with E2EE
@@ -96,7 +97,7 @@ class AuthService {
 
       return data;
     } catch (error) {
-      console.error('Registration error:', error);
+      logger.error('Registration error:', error);
       throw error;
     }
   }
@@ -134,7 +135,7 @@ class AuthService {
           const publicKey = await cryptoService.importPublicKey(data.publicKey);
           cryptoService.setKeyPair({ publicKey, privateKey });
         } catch (error) {
-          console.error('Failed to decrypt private key:', error);
+          logger.error('Failed to decrypt private key:', error);
           throw new Error('Invalid password');
         }
       }
@@ -143,7 +144,7 @@ class AuthService {
 
       return data;
     } catch (error) {
-      console.error('Login error:', error);
+      logger.error('Login error:', error);
       throw error;
     }
   }
@@ -163,7 +164,7 @@ class AuthService {
         body: JSON.stringify({ sessionId, encryptedPrivateKey }),
       });
     } catch (error) {
-      console.error('Failed to store private key:', error);
+      logger.error('Failed to store private key:', error);
     }
   }
 
@@ -182,7 +183,7 @@ class AuthService {
         body: JSON.stringify({ sessionId: this.sessionId }),
       });
     } catch (error) {
-      console.error('Logout error:', error);
+      logger.error('Logout error:', error);
     } finally {
       this.clearSession();
     }
@@ -217,7 +218,7 @@ class AuthService {
       
       return data.users;
     } catch (error) {
-      console.error('Get users error:', error);
+      logger.error('Get users error:', error);
       throw error;
     }
   }
@@ -249,7 +250,7 @@ class AuthService {
       
       return data;
     } catch (error) {
-      console.error('Session verification error:', error);
+      logger.error('Session verification error:', error);
       this.clearSession();
       return null;
     }
@@ -291,7 +292,7 @@ class AuthService {
       
       return true;
     } catch (error) {
-      console.error('Failed to restore private key:', error);
+      logger.error('Failed to restore private key:', error);
       throw new Error('Invalid password or corrupted key');
     }
   }
