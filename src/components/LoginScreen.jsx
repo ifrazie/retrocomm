@@ -1,4 +1,5 @@
 import React, { useState } from 'react';
+import PropTypes from 'prop-types';
 import './LoginScreen.css';
 
 function LoginScreen({ onLogin }) {
@@ -183,4 +184,8 @@ function LoginScreen({ onLogin }) {
   );
 }
 
-export default LoginScreen;
+LoginScreen.propTypes = {
+  onLogin: PropTypes.func.isRequired
+};
+
+export default React.memo(LoginScreen);

@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from 'react';
+import PropTypes from 'prop-types';
 import { useConfig } from '../contexts/ConfigContext.jsx';
 import { validateWebhookUrl } from '../utils/validation.js';
 import './WebhookConfig.css';
@@ -44,7 +45,7 @@ const WebhookConfig = ({ onClose }) => {
   /**
    * Handle input field changes
    */
-  const _handleInputChange = (e) => {
+  const handleInputChange = (e) => {
     const { name, value, type, checked } = e.target;
     const newValue = type === 'checkbox' ? checked : value;
 
@@ -65,7 +66,7 @@ const WebhookConfig = ({ onClose }) => {
   /**
    * Validate URL field on blur
    */
-  const _handleUrlBlur = (fieldName) => {
+  const handleUrlBlur = (fieldName) => {
     const url = formData[fieldName];
     
     // Skip validation if field is empty
@@ -85,7 +86,7 @@ const WebhookConfig = ({ onClose }) => {
   /**
    * Validate entire form
    */
-  const _validateForm = () => {
+  const validateForm = () => {
     const newErrors = {
       incomingUrl: '',
       outgoingUrl: '',
@@ -122,11 +123,11 @@ const WebhookConfig = ({ onClose }) => {
   /**
    * Handle form submission
    */
-  const _handleSubmit = (e) => {
+  const handleSubmit = (e) => {
     e.preventDefault();
 
     // Validate form
-    if (!_validateForm()) {
+    if (!validateForm()) {
       return;
     }
 
@@ -147,7 +148,7 @@ const WebhookConfig = ({ onClose }) => {
   /**
    * Copy backend webhook URL to clipboard
    */
-  const _handleCopyWebhookUrl = async () => {
+  const handleCopyWebhookUrl = async () => {
     try {
       await navigator.clipboard.writeText(backendWebhookUrl);
       setCopied(true);
@@ -173,7 +174,7 @@ const WebhookConfig = ({ onClose }) => {
         )}
       </div>
 
-      <form className="WebhookConfig__form" onSubmit={_handleSubmit}>
+      <form className="WebhookConfig__form" onSubmit={handleSubmit}>
         {/* Backend Webhook Endpoint Display */}
         <div className="WebhookConfig__section">
           <h3 className="WebhookConfig__section-title">Your Webhook Endpoint</h3>
@@ -190,7 +191,7 @@ const WebhookConfig = ({ onClose }) => {
             <button
               type="button"
               className="WebhookConfig__copy-btn"
-              onClick={_handleCopyWebhookUrl}
+              onClick={handleCopyWebhookUrl}
               title="Copy to clipboard"
             >
               {copied ? '✓ Copied' : 'Copy'}
@@ -209,8 +210,8 @@ const WebhookConfig = ({ onClose }) => {
             name="incomingUrl"
             className={`WebhookConfig__input ${errors.incomingUrl ? 'WebhookConfig__input--error' : ''}`}
             value={formData.incomingUrl}
-            onChange={_handleInputChange}
-            onBlur={() => _handleUrlBlur('incomingUrl')}
+            onChange={handleInputChange}
+            onBlur={() => handleUrlBlur('incomingUrl')}
             placeholder="https://example.com/webhook"
           />
           {errors.incomingUrl && (
@@ -232,8 +233,8 @@ const WebhookConfig = ({ onClose }) => {
             name="outgoingUrl"
             className={`WebhookConfig__input ${errors.outgoingUrl ? 'WebhookConfig__input--error' : ''}`}
             value={formData.outgoingUrl}
-            onChange={_handleInputChange}
-            onBlur={() => _handleUrlBlur('outgoingUrl')}
+            onChange={handleInputChange}
+            onBlur={() => handleUrlBlur('outgoingUrl')}
             placeholder="https://example.com/receive"
           />
           {errors.outgoingUrl && (
@@ -254,7 +255,7 @@ const WebhookConfig = ({ onClose }) => {
                 type="checkbox"
                 name="enableAuth"
                 checked={formData.enableAuth}
-                onChange={_handleInputChange}
+                onChange={handleInputChange}
               />
               <span>Enable Authentication</span>
             </label>
@@ -271,7 +272,7 @@ const WebhookConfig = ({ onClose }) => {
                 name="authToken"
                 className={`WebhookConfig__input ${errors.authToken ? 'WebhookConfig__input--error' : ''}`}
                 value={formData.authToken}
-                onChange={_handleInputChange}
+                onChange={handleInputChange}
                 placeholder="Enter your auth token"
               />
               {errors.authToken && (
@@ -304,4 +305,8 @@ const WebhookConfig = ({ onClose }) => {
   );
 };
 
-export default WebhookConfig;
+WebhookConfig.propTypes = {
+  onClose: PropTypes.func
+};
+
+export default React.memo(WebhookConfig);

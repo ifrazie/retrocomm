@@ -107,3 +107,18 @@ export const DEFAULT_RETRY_BASE_DELAY = 1000;
  * Matches typical pager message length limits from the 1990s
  */
 export const MAX_PAGER_MESSAGE_LENGTH = 240;
+
+// ============================================================================
+// Application Constants
+// ============================================================================
+
+/**
+ * Special username for the AI chatbot
+ */
+export const CHATBOT_USERNAME = 'ChatBot';
+
+/**
+ * Interface mode constants
+ */
+export const MODE_PAGER = 'pager';
+export const MODE_FAX = 'fax';

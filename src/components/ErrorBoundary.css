@@ -1,0 +1,107 @@
+.error-boundary {
+  min-height: 100vh;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: linear-gradient(135deg, #1a1a2e 0%, #16213e 100%);
+  padding: 20px;
+}
+
+.error-boundary-container {
+  max-width: 600px;
+  width: 100%;
+  background: #0a0a0a;
+  border: 3px solid #ff0000;
+  border-radius: 8px;
+  box-shadow: 0 0 30px rgba(255, 0, 0, 0.3);
+  overflow: hidden;
+}
+
+.error-boundary-header {
+  background: #ff0000;
+  color: #000;
+  padding: 20px;
+  text-align: center;
+}
+
+.error-boundary-header h1 {
+  margin: 0;
+  font-family: 'Courier New', monospace;
+  font-size: 2rem;
+  letter-spacing: 3px;
+  animation: blink 1s infinite;
+}
+
+.error-boundary-subtitle {
+  margin-top: 10px;
+  font-family: 'Courier New', monospace;
+  font-size: 0.9rem;
+  letter-spacing: 2px;
+}
+
+.error-boundary-content {
+  padding: 30px;
+  color: #ff0000;
+  font-family: 'Courier New', monospace;
+}
+
+.error-boundary-message {
+  background: #1a1a1a;
+  padding: 20px;
+  border: 2px solid #ff0000;
+  margin-bottom: 20px;
+  font-size: 0.9rem;
+  line-height: 1.8;
+  white-space: pre-wrap;
+}
+
+.error-boundary-description {
+  text-align: center;
+  line-height: 1.8;
+  margin: 20px 0;
+  color: #ff6b6b;
+}
+
+.error-boundary-button {
+  display: block;
+  width: 100%;
+  padding: 15px;
+  background: #ff0000;
+  color: #000;
+  border: none;
+  font-family: 'Courier New', monospace;
+  font-size: 1rem;
+  font-weight: bold;
+  letter-spacing: 2px;
+  cursor: pointer;
+  transition: all 0.3s ease;
+}
+
+.error-boundary-button:hover {
+  background: #ff3333;
+  box-shadow: 0 0 20px rgba(255, 0, 0, 0.5);
+}
+
+.error-boundary-button:active {
+  transform: scale(0.98);
+}
+
+.error-boundary-footer {
+  background: #1a1a1a;
+  color: #ff0000;
+  padding: 15px;
+  text-align: center;
+  font-family: 'Courier New', monospace;
+  font-size: 0.8rem;
+  letter-spacing: 1px;
+  border-top: 2px solid #ff0000;
+}
+
+@keyframes blink {
+  0%, 50% {
+    opacity: 1;
+  }
+  51%, 100% {
+    opacity: 0.5;
+  }
+}

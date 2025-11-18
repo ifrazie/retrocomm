@@ -2,7 +2,9 @@ import { LMStudioClient } from "@lmstudio/sdk";
 import {
     MAX_LLM_TOKENS,
     LLM_TEMPERATURE,
-    MAX_CONVERSATION_HISTORY
+    MAX_CONVERSATION_HISTORY,
+    MODE_PAGER,
+    MODE_FAX
 } from '../utils/constants.js';
 import { cleanLLMResponse } from '../utils/cleanLLMResponse.js';
 
@@ -19,7 +21,7 @@ class LLMChatbotService {
     this.model = null;
     this.conversationHistory = [];
     this.isConnected = false;
-    this.currentMode = 'pager'; // Track current interface mode
+    this.currentMode = MODE_PAGER; // Track current interface mode
   }
 
   /**
@@ -116,7 +118,7 @@ class LLMChatbotService {
    * Set system prompt based on current mode
    */
   setSystemPrompt() {
-    const systemPrompt = `You are a retro AI assistant integrated into a ${this.currentMode === 'pager' ? 'vintage pager device from the 1990s' : 'classic fax machine from the 1980s'}. 
+    const systemPrompt = `You are a retro AI assistant integrated into a ${this.currentMode === MODE_PAGER ? 'vintage pager device from the 1990s' : 'classic fax machine from the 1980s'}. 
 
 Your responses should:
 - Be concise and fit the retro aesthetic

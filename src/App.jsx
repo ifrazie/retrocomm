@@ -6,42 +6,32 @@ import { logger } from './utils/logger';
 import Toast from './components/Toast';
 import LoginScreen from './components/LoginScreen';
 import UserSelector from './components/UserSelector';
+import PagerView from './components/PagerView';
+import FaxView from './components/FaxView';
 import { authService } from './services/AuthService';
 import { messagingService } from './services/MessagingService';
 import './styles/toast.css';
 import {
     MAX_PAGER_MESSAGES,
     WEBHOOK_DELAY_MS,
-    COPY_FEEDBACK_DURATION_MS,
-    TOAST_DURATION_MS
+    TOAST_DURATION_MS,
+    CHATBOT_USERNAME,
+    MODE_PAGER,
+    MODE_FAX
 } from './utils/constants';
-
-const EXAMPLE_MESSAGES = [
-    { id: generateMessageId(), sender: 'Alice', content: "Hey! How's the project?", timestamp: '14:32', type: 'received' },
-    { id: generateMessageId(), sender: 'Bob', content: 'Running late to meeting', timestamp: '14:45', type: 'received' },
-    { id: generateMessageId(), sender: 'ChatBot', content: 'Temperature: 72°F, Humidity: 45%', timestamp: '15:00', type: 'bot' },
-    { id: generateMessageId(), sender: 'Manager', content: 'Send status report ASAP', timestamp: '15:15', type: 'received' },
-    { id: generateMessageId(), sender: 'System', content: 'Network connectivity restored', timestamp: '15:30', type: 'bot' },
-    { id: generateMessageId(), sender: 'Alice', content: 'Meeting at 4pm confirmed', timestamp: '15:45', type: 'received' },
-    { id: generateMessageId(), sender: 'DevOps', content: 'Server deployment successful', timestamp: '16:00', type: 'received' },
-    { id: generateMessageId(), sender: 'ChatBot', content: 'Reminder: Team standup in 15 mins', timestamp: '16:15', type: 'bot' },
-    { id: generateMessageId(), sender: 'Bob', content: 'Code review completed', timestamp: '16:30', type: 'received' },
-    { id: generateMessageId(), sender: 'Security', content: 'Password expiry notice: 7 days', timestamp: '16:45', type: 'received' }
-];
 
 function App() {
     // Authentication state
     const [isAuthenticated, setIsAuthenticated] = useState(false);
     const [currentUser, setCurrentUser] = useState(null);
-    const [isLoggingIn, setIsLoggingIn] = useState(false);
 
     // Recipient selection state
-    const [selectedRecipient, setSelectedRecipient] = useState('ChatBot');
+    const [selectedRecipient, setSelectedRecipient] = useState(CHATBOT_USERNAME);
     const [availableUsers, setAvailableUsers] = useState([]);
     const [showUserSelector, setShowUserSelector] = useState(false);
 
     // Existing state
-    const [mode, setMode] = useState('pager');
+    const [mode, setMode] = useState(MODE_PAGER);
     const { isConnected: llmConnected, isInitializing: llmInitializing, isGenerating: llmGenerating, generateResponse } = useLLMChatbot(mode);
     const [messages, setMessages] = useState([]);
     const [inputMessage, setInputMessage] = useState('');
@@ -49,15 +39,10 @@ function App() {
     const [isTyping, setIsTyping] = useState(false);
     const [hasNewMessage, setHasNewMessage] = useState(false);
     const [showSettings, setShowSettings] = useState(false);
-    const [webhookConfig, setWebhookConfig] = useState({
-        outgoingUrl: '',
-        authToken: '',
-        enableAuth: false
-    });
-    const [copied, setCopied] = useState(false);
     const [toast, setToast] = useState(null);
     const messagesEndRef = useRef(null);
     const modalTriggerRef = useRef(null); // Store element that opened modal for focus return
+    const copyTimerRef = useRef(null); // Store timer for cleanup
 
     const showToast = useCallback((message, type = 'info', duration = TOAST_DURATION_MS) => {
         setToast({ message, type, duration });
@@ -113,7 +98,7 @@ function App() {
             const users = await authService.getUsers();
             // Add ChatBot as a special recipient
             setAvailableUsers([
-                { username: 'ChatBot', online: true, lastSeen: null },
+                { username: CHATBOT_USERNAME, online: true, lastSeen: null },
                 ...users
             ]);
         } catch (error) {
@@ -123,8 +108,6 @@ function App() {
 
     // Handle login/registration
     const handleLogin = useCallback(async (username, password, isRegistration = false) => {
-        setIsLoggingIn(true);
-        
         try {
             let result;
             if (isRegistration) {
@@ -156,8 +139,6 @@ function App() {
             logger.error('Authentication failed:', error);
             showToast(error.message || 'Authentication failed. Please try again.', 'error');
             throw error;
-        } finally {
-            setIsLoggingIn(false);
         }
     }, [showToast, loadAvailableUsers]);
 
@@ -170,7 +151,7 @@ function App() {
             setIsAuthenticated(false);
             setCurrentUser(null);
             setMessages([]);
-            setSelectedRecipient('ChatBot');
+            setSelectedRecipient(CHATBOT_USERNAME);
             setAvailableUsers([]);
             
             showToast('Logged out successfully', 'success');
@@ -186,6 +167,15 @@ function App() {
     useEffect(() => {
         scrollToBottom();
     }, [messages, scrollToBottom]);
+
+    // Cleanup copy timer on unmount
+    useEffect(() => {
+        return () => {
+            if (copyTimerRef.current) {
+                clearTimeout(copyTimerRef.current);
+            }
+        };
+    }, []);
 
     // Handle Escape key to close modal
     useEffect(() => {
@@ -220,6 +210,41 @@ function App() {
         }
     }, [showSettings]);
 
+    const handleChatbotResponse = useCallback(async (userMessage) => {
+        setIsTyping(true);
+
+        try {
+            // Generate response using LLM
+            const response = await generateResponse(userMessage);
+
+            setIsTyping(false);
+
+            const botMessage = {
+                id: generateMessageId(),
+                sender: CHATBOT_USERNAME,
+                content: response,
+                timestamp: new Date().toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit' }),
+                type: 'bot'
+            };
+
+            setMessages(prev => [...prev, botMessage]);
+            setHasNewMessage(true);
+        } catch (error) {
+            logger.error('Chatbot error:', error);
+            setIsTyping(false);
+            
+            // Fallback message on error
+            const errorMessage = {
+                id: generateMessageId(),
+                sender: CHATBOT_USERNAME,
+                content: '[ERROR] Failed to generate response. Check LM Studio connection.',
+                timestamp: new Date().toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit' }),
+                type: 'bot'
+            };
+            setMessages(prev => [...prev, errorMessage]);
+        }
+    }, [generateResponse]);
+
     const handleSendMessage = useCallback(async () => {
         if (!inputMessage.trim()) {
             showToast('Please enter a message', 'error');
@@ -250,7 +275,7 @@ function App() {
         setWebhookStatus('sending');
 
         // Check if sending to ChatBot (for LLM responses)
-        if (selectedRecipient === 'ChatBot') {
+        if (selectedRecipient === CHATBOT_USERNAME) {
             // Trigger chatbot response (LLM or fallback)
             setTimeout(() => {
                 setMessages(prev => prev.map(msg => 
@@ -287,42 +312,7 @@ function App() {
                 showToast(error.message || 'Failed to send message', 'error');
             }
         }
-    }, [inputMessage, selectedRecipient, showToast]);
-
-    const handleChatbotResponse = useCallback(async (userMessage) => {
-        setIsTyping(true);
-
-        try {
-            // Generate response using LLM
-            const response = await generateResponse(userMessage);
-
-            setIsTyping(false);
-
-            const botMessage = {
-                id: generateMessageId(),
-                sender: 'ChatBot',
-                content: response,
-                timestamp: new Date().toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit' }),
-                type: 'bot'
-            };
-
-            setMessages(prev => [...prev, botMessage]);
-            setHasNewMessage(true);
-        } catch (error) {
-            logger.error('Chatbot error:', error);
-            setIsTyping(false);
-            
-            // Fallback message on error
-            const errorMessage = {
-                id: generateMessageId(),
-                sender: 'ChatBot',
-                content: '[ERROR] Failed to generate response. Check LM Studio connection.',
-                timestamp: new Date().toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit' }),
-                type: 'bot'
-            };
-            setMessages(prev => [...prev, errorMessage]);
-        }
-    }, [generateResponse]);
+    }, [inputMessage, selectedRecipient, showToast, handleChatbotResponse]);
 
     const handleClearMessages = useCallback(() => {
         setMessages([]);
@@ -333,8 +323,7 @@ function App() {
         const backendWebhookUrl = `${window.location.origin}/api/webhook`;
         try {
             await navigator.clipboard.writeText(backendWebhookUrl);
-            setCopied(true);
-            setTimeout(() => setCopied(false), COPY_FEEDBACK_DURATION_MS);
+            showToast('Webhook URL copied to clipboard!', 'success', 2000);
         } catch (error) {
             logger.error('Failed to copy to clipboard:', error);
             showToast('Failed to copy URL. Please copy manually.', 'error');
@@ -347,11 +336,10 @@ function App() {
     }, []);
 
     // Memoize mode switching callbacks
-    const handleModeChangeToPager = useCallback(() => setMode('pager'), []);
-    const handleModeChangeToFax = useCallback(() => setMode('fax'), []);
+    const handleModeChangeToPager = useCallback(() => setMode(MODE_PAGER), []);
+    const handleModeChangeToFax = useCallback(() => setMode(MODE_FAX), []);
     const handleOpenSettings = useCallback(() => setShowSettings(true), []);
     const handleCloseSettings = useCallback(() => setShowSettings(false), []);
-    const handleMarkAsRead = useCallback(() => setHasNewMessage(false), []);
     const handleScrollToTop = useCallback(() => window.scrollTo(0, 0), []);
     const handleScrollToBottom = useCallback(() => window.scrollTo(0, document.body.scrollHeight), []);
     
@@ -387,221 +375,6 @@ function App() {
         return { startIndex, total: messages.length };
     }, [messages.length]);
 
-    const renderPagerView = () => (
-        <div className="pager-device">
-            <div className="pager-label">
-                ━━━ RETROPAGER 9000 ━━━ MADE IN JAPAN ━━━
-            </div>
-            
-            <div className="pager-screen">
-                <div className="pager-display">
-                    {messages.length === 0 ? (
-                        <div>NO MESSAGES</div>
-                    ) : (
-                        recentPagerMessages.map((msg, idx) => (
-                            <div key={msg.id} className="pager-message">
-                                <div>
-                                    {msg.type === 'bot' && <span className="bot-prefix">[BOT] </span>}
-                                    MSG #{messageNumberingInfo.startIndex + idx + 1} FROM: {msg.sender}
-                                    {msg.type === 'sent' && msg.recipient && ` TO: ${msg.recipient}`}
-                                </div>
-                                <div>TIME: {msg.timestamp}</div>
-                                <div>TEXT: {msg.content}</div>
-                                {msg.status && (
-                                    <div className="message-status">
-                                        [{msg.status.toUpperCase()}]
-                                    </div>
-                                )}
-                                <div>━━━━━━━━━━━━━━━━━━━━━</div>
-                            </div>
-                        ))
-                    )}
-                    {isTyping && (
-                        <div className="typing-indicator">
-                            <span className="bot-prefix">[LLM] </span>{llmGenerating ? 'GENERATING' : 'TYPING'}
-                            <span className="typing-dots">
-                                <span>.</span><span>.</span><span>.</span>
-                            </span>
-                        </div>
-                    )}
-                    <div ref={messagesEndRef} />
-                </div>
-            </div>
-
-            <div className="pager-controls">
-                <button className="pager-btn" onClick={handleScrollToTop} aria-label="Scroll to top">▲ UP</button>
-                <button className="pager-btn" onClick={handleModeChangeToFax} aria-label="Switch to fax mode">📠 FAX</button>
-                <button className="pager-btn" onClick={handleScrollToBottom} aria-label="Scroll to bottom">▼ DOWN</button>
-                <button className="pager-btn" onClick={handleClearMessages} aria-label="Clear all messages">✕ CLEAR</button>
-                <button className="pager-btn" onClick={handleOpenSettings} aria-label="Open settings menu">⚙ MENU</button>
-                <button className="pager-btn" onClick={handleOpenUserSelector} aria-label="Select recipient">👤 TO</button>
-            </div>
-
-            <div className="input-area">
-                <div className="recipient-display" style={{
-                    padding: '8px 15px',
-                    background: '#0a0a0a',
-                    border: '2px solid #00ff41',
-                    marginBottom: '10px',
-                    fontFamily: "'Courier New', monospace",
-                    color: '#00ff41',
-                    fontSize: '0.9rem',
-                    letterSpacing: '1px'
-                }}>
-                    TO: {selectedRecipient || 'SELECT RECIPIENT'} {selectedRecipient === 'ChatBot' && '🤖'}
-                </div>
-                <div className="input-container">
-                    <input
-                        type="text"
-                        className="message-input"
-                        placeholder={`Message to ${selectedRecipient || 'recipient'}...`}
-                        value={inputMessage}
-                        onChange={handleInputChange}
-                        onKeyPress={handleKeyPress}
-                    />
-                    <button className="send-btn" onClick={handleSendMessage}>
-                        SEND
-                    </button>
-                </div>
-                <div className="webhook-status">
-                    <span className={`alert-led ${hasNewMessage ? 'active' : ''}`}></span>
-                    {webhookStatus === 'sending' ? (
-                        <>
-                            <div className="webhook-spinner"></div>
-                            <span>WEBHOOK: TRANSMITTING...</span>
-                        </>
-                    ) : (
-                        <>
-                            <div className="webhook-indicator"></div>
-                            <span>USER: {currentUser?.username || 'GUEST'} | LLM: {llmInitializing ? 'INIT...' : llmConnected ? 'ONLINE' : 'OFFLINE'}</span>
-                        </>
-                    )}
-                </div>
-            </div>
-
-            <div className="device-label">
-                MODEL: RP-9000 | SN: 19891225 | FCC ID: RETRO2025
-            </div>
-        </div>
-    );
-
-    const renderFaxView = () => (
-        <div className="fax-device">
-            <div className="fax-header">
-                <span className={`alert-led ${hasNewMessage ? 'active' : ''}`}></span>
-                FACSIMILE TRANSCEIVER | AWS KIRO WEBHOOK ENABLED
-            </div>
-
-            <div className="fax-paper-slot">
-                <div className="fax-paper">
-                    {webhookStatus === 'sending' && <div className="scanning-line"></div>}
-                    
-                    {messages.length === 0 ? (
-                        <div className="fax-empty-state">
-                            NO FAX RECEIVED
-                        </div>
-                    ) : (
-                        messages.map((msg, idx) => (
-                            <div key={msg.id} className="fax-message">
-                                <div className="fax-header-line">
-                                    ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-                                </div>
-                                <div className="fax-header-line">
-                                    FROM: {msg.sender.toUpperCase()}
-                                    {msg.type === 'sent' && msg.recipient && (
-                                        <>
-                                            <br />
-                                            TO: {msg.recipient.toUpperCase()}
-                                        </>
-                                    )}
-                                    <br />
-                                    DATE: {new Date().toLocaleDateString()} {msg.timestamp}
-                                    <br />
-                                    PAGE: {idx + 1} OF {messages.length}
-                                    {msg.type === 'bot' && ' | TYPE: AUTOMATED'}
-                                </div>
-                                <div className="fax-header-line">
-                                    ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-                                </div>
-                                <div className="fax-message-content">
-                                    {msg.content}
-                                </div>
-                                {msg.status && (
-                                    <div className="fax-status">
-                                        STATUS: {msg.status.toUpperCase()}
-                                    </div>
-                                )}
-                            </div>
-                        ))
-                    )}
-                    {isTyping && (
-                        <div className="fax-message" style={{color: '#666'}}>
-                            <div className="fax-header-line">
-                                {llmGenerating ? 'LLM GENERATING RESPONSE...' : 'INCOMING TRANSMISSION...'}
-                            </div>
-                            <div className="typing-dots">
-                                PRINTING<span>.</span><span>.</span><span>.</span>
-                            </div>
-                        </div>
-                    )}
-                    <div ref={messagesEndRef} />
-                </div>
-            </div>
-
-            <div className="input-area">
-                <div className="recipient-display" style={{
-                    padding: '8px 15px',
-                    background: '#0a0a0a',
-                    border: '2px solid #00ff41',
-                    marginBottom: '10px',
-                    fontFamily: "'Courier New', monospace",
-                    color: '#00ff41',
-                    fontSize: '0.9rem',
-                    letterSpacing: '1px'
-                }}>
-                    TO: {selectedRecipient || 'SELECT RECIPIENT'} {selectedRecipient === 'ChatBot' && '🤖'}
-                </div>
-                <div className="input-container">
-                    <input
-                        type="text"
-                        className="message-input"
-                        placeholder={`Message to ${selectedRecipient || 'recipient'}...`}
-                        value={inputMessage}
-                        onChange={handleInputChange}
-                        onKeyPress={handleKeyPress}
-                    />
-                    <button className="send-btn" onClick={handleSendMessage}>
-                        TRANSMIT
-                    </button>
-                </div>
-                <div className="webhook-status">
-                    {webhookStatus === 'sending' ? (
-                        <>
-                            <div className="webhook-spinner"></div>
-                            <span>TRANSMITTING VIA WEBHOOK...</span>
-                        </>
-                    ) : (
-                        <>
-                            <div className="webhook-indicator"></div>
-                            <span>USER: {currentUser?.username || 'GUEST'} | LLM: {llmInitializing ? 'INIT...' : llmConnected ? 'ONLINE' : 'OFFLINE'}</span>
-                        </>
-                    )}
-                </div>
-            </div>
-
-            <div className="pager-controls">
-                <button className="pager-btn" onClick={handleModeChangeToPager} aria-label="Switch to pager mode">📟 PAGER</button>
-                <button className="pager-btn" onClick={handleClearMessages} aria-label="Clear all messages">🗑 CLEAR</button>
-                <button className="pager-btn" onClick={handleOpenSettings} aria-label="Open settings menu">⚙ MENU</button>
-                <button className="pager-btn" onClick={handleOpenUserSelector} aria-label="Select recipient">👤 TO</button>
-            </div>
-
-            <div className="device-label">
-                FAX-2000 | THERMAL PRINTER | 9600 BAUD MODEM
-            </div>
-        </div>
-    );
-
     // Show login screen if not authenticated
     if (!isAuthenticated) {
         return <LoginScreen onLogin={handleLogin} />;
@@ -619,14 +392,14 @@ function App() {
             <div className="device-container">
                 <div className="mode-switcher">
                     <button 
-                        className={`mode-btn pager ${mode === 'pager' ? 'active' : ''}`}
+                        className={`mode-btn pager ${mode === MODE_PAGER ? 'active' : ''}`}
                         onClick={handleModeChangeToPager}
                         aria-label="Switch to pager mode"
                     >
                         📟 Pager Mode
                     </button>
                     <button 
-                        className={`mode-btn fax ${mode === 'fax' ? 'active' : ''}`}
+                        className={`mode-btn fax ${mode === MODE_FAX ? 'active' : ''}`}
                         onClick={handleModeChangeToFax}
                         aria-label="Switch to fax mode"
                     >
@@ -634,7 +407,53 @@ function App() {
                     </button>
                 </div>
 
-                {mode === 'pager' ? renderPagerView() : renderFaxView()}
+                {mode === MODE_PAGER ? (
+                    <PagerView
+                        messages={messages}
+                        recentPagerMessages={recentPagerMessages}
+                        messageNumberingInfo={messageNumberingInfo}
+                        isTyping={isTyping}
+                        llmGenerating={llmGenerating}
+                        hasNewMessage={hasNewMessage}
+                        webhookStatus={webhookStatus}
+                        currentUser={currentUser}
+                        llmInitializing={llmInitializing}
+                        llmConnected={llmConnected}
+                        inputMessage={inputMessage}
+                        selectedRecipient={selectedRecipient}
+                        messagesEndRef={messagesEndRef}
+                        onScrollToTop={handleScrollToTop}
+                        onModeChangeToFax={handleModeChangeToFax}
+                        onScrollToBottom={handleScrollToBottom}
+                        onClearMessages={handleClearMessages}
+                        onOpenSettings={handleOpenSettings}
+                        onOpenUserSelector={handleOpenUserSelector}
+                        onInputChange={handleInputChange}
+                        onKeyPress={handleKeyPress}
+                        onSendMessage={handleSendMessage}
+                    />
+                ) : (
+                    <FaxView
+                        messages={messages}
+                        isTyping={isTyping}
+                        llmGenerating={llmGenerating}
+                        hasNewMessage={hasNewMessage}
+                        webhookStatus={webhookStatus}
+                        currentUser={currentUser}
+                        llmInitializing={llmInitializing}
+                        llmConnected={llmConnected}
+                        inputMessage={inputMessage}
+                        selectedRecipient={selectedRecipient}
+                        messagesEndRef={messagesEndRef}
+                        onModeChangeToPager={handleModeChangeToPager}
+                        onClearMessages={handleClearMessages}
+                        onOpenSettings={handleOpenSettings}
+                        onOpenUserSelector={handleOpenUserSelector}
+                        onInputChange={handleInputChange}
+                        onKeyPress={handleKeyPress}
+                        onSendMessage={handleSendMessage}
+                    />
+                )}
             </div>
 
             <div className="powered-by">
@@ -723,7 +542,7 @@ function App() {
                                         className="settings-copy-btn"
                                         onClick={handleCopyWebhookUrl}
                                     >
-                                        {copied ? '✓ Copied' : 'Copy'}
+                                        Copy
                                     </button>
                                 </div>
                             </div>

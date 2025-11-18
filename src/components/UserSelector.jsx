@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from 'react';
+import PropTypes from 'prop-types';
 import './UserSelector.css';
 
 function UserSelector({ users, currentRecipient, onSelectUser, onClose }) {
@@ -87,4 +88,15 @@ function UserSelector({ users, currentRecipient, onSelectUser, onClose }) {
   );
 }
 
-export default UserSelector;
+UserSelector.propTypes = {
+  users: PropTypes.arrayOf(PropTypes.shape({
+    username: PropTypes.string.isRequired,
+    online: PropTypes.bool,
+    lastSeen: PropTypes.string
+  })).isRequired,
+  currentRecipient: PropTypes.string,
+  onSelectUser: PropTypes.func.isRequired,
+  onClose: PropTypes.func.isRequired
+};
+
+export default React.memo(UserSelector);
