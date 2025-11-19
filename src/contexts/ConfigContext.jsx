@@ -1,4 +1,4 @@
-import React, { createContext, useContext, useState, useEffect, useMemo } from 'react';
+import React, { createContext, useContext, useState, useEffect, useMemo, useCallback } from 'react';
 import { 
   getWebhookSettings, 
   saveWebhookSettings, 
@@ -52,88 +52,101 @@ export const ConfigProvider = ({ children }) => {
    * Update webhook settings
    * @param {Partial<import('../types/index.js').WebhookSettings>} newWebhooks - Webhook settings to update
    */
-  const setWebhooks = (newWebhooks) => {
-    const updatedWebhooks = { ...webhooks, ...newWebhooks };
-    setWebhooksState(updatedWebhooks);
-    saveWebhookSettings(updatedWebhooks);
-  };
+  const setWebhooks = useCallback((newWebhooks) => {
+    setWebhooksState(prev => {
+      const updatedWebhooks = { ...prev, ...newWebhooks };
+      saveWebhookSettings(updatedWebhooks);
+      return updatedWebhooks;
+    });
+  }, []);
 
   /**
    * Update user preferences
    * @param {Partial<import('../types/index.js').AppPreferences>} newPreferences - Preferences to update
    */
-  const setPreferences = (newPreferences) => {
-    const updatedPreferences = { ...preferences, ...newPreferences };
-    setPreferencesState(updatedPreferences);
-    savePreferences(updatedPreferences);
-  };
+  const setPreferences = useCallback((newPreferences) => {
+    setPreferencesState(prev => {
+      const updatedPreferences = { ...prev, ...newPreferences };
+      savePreferences(updatedPreferences);
+      return updatedPreferences;
+    });
+  }, []);
 
   /**
    * Update only the mode preference
    * @param {'pager' | 'fax'} mode - Interface mode
    */
-  const setMode = (mode) => {
+  const setMode = useCallback((mode) => {
     setPreferences({ mode });
-  };
+  }, [setPreferences]);
 
   /**
    * Toggle sound enabled preference
    */
-  const toggleSound = () => {
-    setPreferences({ soundEnabled: !preferences.soundEnabled });
-  };
+  const toggleSound = useCallback(() => {
+    setPreferencesState(prev => {
+      const updated = { ...prev, soundEnabled: !prev.soundEnabled };
+      savePreferences(updated);
+      return updated;
+    });
+  }, []);
 
   /**
    * Update layout variant preference
    * @param {'default' | 'compact' | 'experimental'} variant - Layout variant
    */
-  const setLayoutVariant = (variant) => {
+  const setLayoutVariant = useCallback((variant) => {
     setPreferences({ layoutVariant: variant });
-  };
+  }, [setPreferences]);
 
   /**
    * Update incoming webhook URL
    * @param {string} url - Incoming webhook URL
    */
-  const setIncomingUrl = (url) => {
+  const setIncomingUrl = useCallback((url) => {
     setWebhooks({ incomingUrl: url });
-  };
+  }, [setWebhooks]);
 
   /**
    * Update outgoing webhook URL
    * @param {string} url - Outgoing webhook URL
    */
-  const setOutgoingUrl = (url) => {
+  const setOutgoingUrl = useCallback((url) => {
     setWebhooks({ outgoingUrl: url });
-  };
+  }, [setWebhooks]);
 
   /**
    * Update authentication token
    * @param {string} token - Auth token
    */
-  const setAuthToken = (token) => {
+  const setAuthToken = useCallback((token) => {
     setWebhooks({ authToken: token });
-  };
+  }, [setWebhooks]);
 
   /**
    * Toggle authentication enabled
    */
-  const toggleAuth = () => {
-    setWebhooks({ enableAuth: !webhooks.enableAuth });
-  };
+  const toggleAuth = useCallback(() => {
+    setWebhooksState(prev => {
+      const updated = { ...prev, enableAuth: !prev.enableAuth };
+      saveWebhookSettings(updated);
+      return updated;
+    });
+  }, []);
 
   /**
    * Reset all configuration to defaults
    */
-  const resetConfig = () => {
+  const resetConfig = useCallback(() => {
     setWebhooksState(defaultWebhooks);
     setPreferencesState(defaultPreferences);
     saveWebhookSettings(defaultWebhooks);
     savePreferences(defaultPreferences);
-  };
+  }, []);
 
   // Memoize context value to prevent unnecessary re-renders of consumers
   // Only recalculate when webhooks, preferences, or isLoaded actually change
+  // Functions are stable due to useCallback, so we don't include them in dependencies
   const value = useMemo(() => ({
     webhooks,
     preferences,

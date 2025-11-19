@@ -1,4 +1,4 @@
-import React, { createContext, useContext, useReducer, useEffect, useMemo } from 'react';
+import React, { createContext, useContext, useReducer, useEffect, useMemo, useCallback } from 'react';
 import { getMessageHistory, saveMessageHistory } from '../utils/storage.js';
 import { MAX_STORED_MESSAGES } from '../utils/constants.js';
 
@@ -77,28 +77,29 @@ export const MessageProvider = ({ children }) => {
    * Add a new message to the queue
    * @param {import('../types/index.js').Message} message - Message to add
    */
-  const addMessage = (message) => {
+  const addMessage = useCallback((message) => {
     dispatch({ type: ADD_MESSAGE, payload: message });
-  };
+  }, []);
 
   /**
    * Clear all messages from history
    */
-  const clearHistory = () => {
+  const clearHistory = useCallback(() => {
     dispatch({ type: CLEAR_HISTORY });
     saveMessageHistory([]);
-  };
+  }, []);
 
   /**
    * Set messages (replace entire message array)
    * @param {import('../types/index.js').Message[]} messages - Messages to set
    */
-  const setMessages = (messages) => {
+  const setMessages = useCallback((messages) => {
     dispatch({ type: SET_MESSAGES, payload: messages });
-  };
+  }, []);
 
   // Memoize context value to prevent unnecessary re-renders of consumers
   // Only recalculate when messages array actually changes
+  // Functions are stable due to useCallback, so we don't include them in dependencies
   const value = useMemo(() => ({
     messages: state.messages,
     addMessage,

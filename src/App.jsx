@@ -284,27 +284,31 @@ function App() {
         }
     }, [generateResponse]);
 
-    const handleSendMessage = useCallback(async () => {
-        // Prevent multiple simultaneous sends
-        if (isSending) return;
-        
+    // Helper function to update message status
+    const updateMessageStatus = useCallback((messageId, updates) => {
+        setMessages(prev => prev.map(msg => 
+            msg.id === messageId ? { ...msg, ...updates } : msg
+        ));
+    }, []);
+
+    // Helper function to validate message before sending
+    const validateMessage = useCallback(() => {
         if (!inputMessage.trim()) {
             showToast('Please enter a message', 'error');
-            return;
+            return false;
         }
 
         if (!selectedRecipient) {
             showToast('Please select a recipient', 'error');
-            return;
+            return false;
         }
-        
-        setIsSending(true);
 
-        const messageContent = inputMessage;
-        const tempId = generateMessageId();
-        
-        // Add optimistic message to UI
-        const optimisticMessage = {
+        return true;
+    }, [inputMessage, selectedRecipient, showToast]);
+
+    // Helper function to create optimistic message
+    const createOptimisticMessage = useCallback((messageContent, tempId) => {
+        return {
             id: tempId,
             sender: 'You',
             recipient: selectedRecipient,
@@ -313,53 +317,69 @@ function App() {
             type: 'sent',
             status: 'sending'
         };
+    }, [selectedRecipient]);
 
+    // Helper function to send message to chatbot
+    const sendToChatBot = useCallback((messageContent, tempId) => {
+        setTimeout(() => {
+            updateMessageStatus(tempId, { status: 'delivered' });
+            setWebhookStatus('connected');
+            setIsSending(false);
+            handleChatbotResponse(messageContent);
+        }, WEBHOOK_DELAY_MS);
+    }, [updateMessageStatus, handleChatbotResponse]);
+
+    // Helper function to send message to real user
+    const sendToUser = useCallback(async (recipient, messageContent, tempId) => {
+        try {
+            const result = await messagingService.sendMessage(recipient, messageContent);
+            
+            // Update message with real ID and status
+            updateMessageStatus(tempId, {
+                id: result.messageId,
+                status: result.status,
+                timestamp: new Date(result.timestamp).toLocaleTimeString('en-US', {
+                    hour: '2-digit',
+                    minute: '2-digit'
+                })
+            });
+            setWebhookStatus('connected');
+            setIsSending(false);
+            showToast(`Message sent to ${recipient}!`, 'success', 2000);
+        } catch (error) {
+            logger.error('Failed to send message:', error);
+            updateMessageStatus(tempId, { status: 'failed' });
+            setWebhookStatus('connected');
+            setIsSending(false);
+            showToast(error.message || 'Failed to send message', 'error');
+        }
+    }, [updateMessageStatus, showToast]);
+
+    const handleSendMessage = useCallback(async () => {
+        // Prevent multiple simultaneous sends
+        if (isSending) return;
+        
+        // Validate message
+        if (!validateMessage()) return;
+        
+        setIsSending(true);
+
+        const messageContent = inputMessage;
+        const tempId = generateMessageId();
+        
+        // Add optimistic message to UI
+        const optimisticMessage = createOptimisticMessage(messageContent, tempId);
         setMessages(prev => [...prev, optimisticMessage]);
         setInputMessage('');
         setWebhookStatus('sending');
 
-        // Check if sending to ChatBot (for LLM responses)
+        // Route message to appropriate handler
         if (selectedRecipient === CHATBOT_USERNAME) {
-            // Trigger chatbot response (LLM or fallback)
-            setTimeout(() => {
-                setMessages(prev => prev.map(msg => 
-                    msg.id === tempId ? { ...msg, status: 'delivered' } : msg
-                ));
-                setWebhookStatus('connected');
-                setIsSending(false);
-                handleChatbotResponse(messageContent);
-            }, WEBHOOK_DELAY_MS);
+            sendToChatBot(messageContent, tempId);
         } else {
-            // Send to real user via backend
-            try {
-                const result = await messagingService.sendMessage(selectedRecipient, messageContent);
-                
-                // Update message with real ID and status
-                setMessages(prev => prev.map(msg => 
-                    msg.id === tempId ? { 
-                        ...msg, 
-                        id: result.messageId,
-                        status: result.status,
-                        timestamp: new Date(result.timestamp).toLocaleTimeString('en-US', {
-                            hour: '2-digit',
-                            minute: '2-digit'
-                        })
-                    } : msg
-                ));
-                setWebhookStatus('connected');
-                setIsSending(false);
-                showToast(`Message sent to ${selectedRecipient}!`, 'success', 2000);
-            } catch (error) {
-                logger.error('Failed to send message:', error);
-                setMessages(prev => prev.map(msg => 
-                    msg.id === tempId ? { ...msg, status: 'failed' } : msg
-                ));
-                setWebhookStatus('connected');
-                setIsSending(false);
-                showToast(error.message || 'Failed to send message', 'error');
-            }
+            await sendToUser(selectedRecipient, messageContent, tempId);
         }
-    }, [inputMessage, selectedRecipient, showToast, handleChatbotResponse, isSending]);
+    }, [isSending, validateMessage, inputMessage, createOptimisticMessage, selectedRecipient, sendToChatBot, sendToUser]);
 
     const handleClearMessages = useCallback(() => {
         setMessages([]);
@@ -451,6 +471,7 @@ function App() {
                         className={`mode-btn pager ${mode === MODE_PAGER ? 'active' : ''}`}
                         onClick={handleModeChangeToPager}
                         aria-label="Switch to pager mode"
+                        aria-pressed={mode === MODE_PAGER}
                     >
                         📟 Pager Mode
                     </button>
@@ -458,6 +479,7 @@ function App() {
                         className={`mode-btn fax ${mode === MODE_FAX ? 'active' : ''}`}
                         onClick={handleModeChangeToFax}
                         aria-label="Switch to fax mode"
+                        aria-pressed={mode === MODE_FAX}
                     >
                         📠 Fax Mode
                     </button>

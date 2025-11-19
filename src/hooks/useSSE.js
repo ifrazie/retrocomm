@@ -1,5 +1,6 @@
 import { useEffect, useRef, useState, useCallback } from 'react';
 import { useMessages } from '../contexts/MessageContext.jsx';
+import { logger } from '../utils/logger.js';
 
 /**
  * Custom hook for Server-Sent Events (SSE) connection
@@ -43,7 +44,7 @@ export const useSSE = (url, enabled = true) => {
       
       // Validate message structure
       if (!data.id || !data.content || !data.timestamp) {
-        console.error('Invalid message format received:', data);
+        logger.error('Invalid message format received:', data);
         return;
       }
 
@@ -59,7 +60,7 @@ export const useSSE = (url, enabled = true) => {
       // Reset reconnect attempts on successful message
       reconnectAttemptsRef.current = 0;
     } catch (error) {
-      console.error('Error parsing SSE message:', error);
+      logger.error('Error parsing SSE message:', error);
     }
   }, [addMessage]);
 
@@ -67,7 +68,7 @@ export const useSSE = (url, enabled = true) => {
    * Handle SSE connection open
    */
   const _handleOpen = useCallback(() => {
-    console.log('SSE connection established');
+    logger.info('SSE connection established');
     setConnectionState({
       connected: true,
       reconnecting: false,
@@ -80,7 +81,7 @@ export const useSSE = (url, enabled = true) => {
    * Handle SSE connection error
    */
   const _handleError = useCallback((error) => {
-    console.error('SSE connection error:', error);
+    logger.error('SSE connection error:', error);
     
     // EventSource automatically tries to reconnect, but we'll handle it manually
     if (eventSourceRef.current) {
@@ -96,7 +97,7 @@ export const useSSE = (url, enabled = true) => {
 
     // Schedule reconnection with exponential backoff
     const delay = _getReconnectDelay();
-    console.log(`Reconnecting in ${delay}ms (attempt ${reconnectAttemptsRef.current + 1})`);
+    logger.info(`Reconnecting in ${delay}ms (attempt ${reconnectAttemptsRef.current + 1})`);
     
     reconnectTimeoutRef.current = setTimeout(() => {
       reconnectAttemptsRef.current += 1;
@@ -114,7 +115,7 @@ export const useSSE = (url, enabled = true) => {
     }
 
     try {
-      console.log('Connecting to SSE endpoint:', url);
+      logger.info('Connecting to SSE endpoint:', url);
       const eventSource = new EventSource(url);
 
       eventSource.addEventListener('open', _handleOpen);
@@ -123,7 +124,7 @@ export const useSSE = (url, enabled = true) => {
 
       eventSourceRef.current = eventSource;
     } catch (error) {
-      console.error('Failed to create SSE connection:', error);
+      logger.error('Failed to create SSE connection:', error);
       setConnectionState({
         connected: false,
         reconnecting: false,

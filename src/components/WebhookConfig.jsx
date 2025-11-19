@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import PropTypes from 'prop-types';
 import { useConfig } from '../contexts/ConfigContext.jsx';
+import { logger } from '../utils/logger.js';
 import { validateWebhookUrl } from '../utils/validation.js';
 import { COPY_FEEDBACK_DURATION_MS } from '../utils/constants.js';
 import './WebhookConfig.css';
@@ -155,7 +156,7 @@ const WebhookConfig = ({ onClose }) => {
       setCopied(true);
       setTimeout(() => setCopied(false), COPY_FEEDBACK_DURATION_MS);
     } catch (error) {
-      console.error('Failed to copy to clipboard:', error);
+      logger.error('Failed to copy to clipboard:', error);
       alert('Failed to copy URL. Please copy manually.');
     }
   };

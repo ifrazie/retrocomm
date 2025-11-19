@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useRef } from 'react';
+import React, { useState, useEffect, useRef, useCallback, useMemo } from 'react';
 import { useMessages } from '../contexts/MessageContext.jsx';
 import { useConfig } from '../contexts/ConfigContext.jsx';
 import { renderFaxWithAnimation } from '../utils/faxRenderer.js';
@@ -66,6 +66,12 @@ const FaxInterface = () => {
   const canvasRef = useRef(null);
   const previousMessageCount = useRef(messages.length);
 
+  // Memoize reversed fax archive to avoid recalculating on every render
+  const reversedFaxArchive = useMemo(() => 
+    faxArchive.slice().reverse(), 
+    [faxArchive]
+  );
+
   // Cleanup blob URLs on unmount to prevent memory leaks
   useEffect(() => {
     return () => {
@@ -79,6 +85,27 @@ const FaxInterface = () => {
 
   // Note: Blob URL cleanup is now handled directly in the state setter
   // to prevent memory leaks more efficiently
+
+  // Helper function to add fax to archive with cleanup
+  const addFaxToArchive = useCallback((faxDoc) => {
+    setFaxArchive(prev => {
+      const updated = [...prev, faxDoc];
+      const trimmed = updated.slice(-MAX_FAX_ARCHIVE);
+      
+      // Revoke URLs for removed items immediately
+      if (updated.length > MAX_FAX_ARCHIVE) {
+        const removed = updated.slice(0, updated.length - MAX_FAX_ARCHIVE);
+        removed.forEach(fax => {
+          if (fax.imageDataUrl?.startsWith('blob:')) {
+            URL.revokeObjectURL(fax.imageDataUrl);
+            blobUrlsRef.current.delete(fax.imageDataUrl);
+          }
+        });
+      }
+      
+      return trimmed;
+    });
+  }, []);
 
   // Memoize renderNewFax to avoid dependency issues
   const renderNewFax = useCallback(async (message) => {
@@ -96,9 +123,7 @@ const FaxInterface = () => {
       const dataUrl = await renderFaxWithAnimation(
         message,
         canvasRef.current,
-        (progress) => {
-          // Animation progress callback (optional use for UI feedback)
-        },
+        null, // Progress callback not used
         FAX_ANIMATION_DURATION_MS
       );
 
@@ -116,43 +141,25 @@ const FaxInterface = () => {
         content: message.content
       };
 
-      // Add to archive (limit to MAX_FAX_ARCHIVE)
-      setFaxArchive(prev => {
-        const updated = [...prev, faxDoc];
-        const trimmed = updated.slice(-MAX_FAX_ARCHIVE);
-        
-        // Revoke URLs for removed items immediately
-        if (updated.length > MAX_FAX_ARCHIVE) {
-          const removed = updated.slice(0, updated.length - MAX_FAX_ARCHIVE);
-          removed.forEach(fax => {
-            if (fax.imageDataUrl?.startsWith('blob:')) {
-              URL.revokeObjectURL(fax.imageDataUrl);
-              blobUrlsRef.current.delete(fax.imageDataUrl);
-            }
-          });
-        }
-        
-        return trimmed;
-      });
-
+      addFaxToArchive(faxDoc);
       setIsTransmitting(false);
       
       // Clear any previous rendering errors
-      if (renderingError) {
-        setRenderingError(false);
-      }
+      setRenderingError(false);
     } catch (error) {
       logger.error('Error rendering fax:', error);
       setIsTransmitting(false);
       
-      // Set rendering error state
-      if (!renderingError) {
-        setRenderingError(true);
-        setToast({
-          message: 'Canvas rendering failed. Falling back to plain text display.',
-          type: 'warning'
-        });
-      }
+      // Set rendering error state only once
+      setRenderingError(prevError => {
+        if (!prevError) {
+          setToast({
+            message: 'Canvas rendering failed. Falling back to plain text display.',
+            type: 'warning'
+          });
+        }
+        return true;
+      });
       
       // Create fallback plain text document
       const fallbackDoc = {
@@ -164,26 +171,9 @@ const FaxInterface = () => {
         isFallback: true
       };
 
-      // Add to archive (limit to MAX_FAX_ARCHIVE)
-      setFaxArchive(prev => {
-        const updated = [...prev, fallbackDoc];
-        const trimmed = updated.slice(-MAX_FAX_ARCHIVE);
-        
-        // Revoke URLs for removed items immediately
-        if (updated.length > MAX_FAX_ARCHIVE) {
-          const removed = updated.slice(0, updated.length - MAX_FAX_ARCHIVE);
-          removed.forEach(fax => {
-            if (fax.imageDataUrl?.startsWith('blob:')) {
-              URL.revokeObjectURL(fax.imageDataUrl);
-              blobUrlsRef.current.delete(fax.imageDataUrl);
-            }
-          });
-        }
-        
-        return trimmed;
-      });
+      addFaxToArchive(fallbackDoc);
     }
-  }, [renderingError]);
+  }, [addFaxToArchive]);
 
   // Process new messages and render as fax documents
   useEffect(() => {
@@ -358,7 +348,7 @@ const FaxInterface = () => {
           </div>
         )}
         <div className="FaxInterface__archive-grid">
-          {faxArchive.slice().reverse().map((fax) => (
+          {reversedFaxArchive.map((fax) => (
             <FaxThumbnail key={fax.id} fax={fax} onClick={handleFaxClick} />
           ))}
         </div>
